@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "*.tlh": "cpp",
+        "iostream": "cpp",
+        "*.ph": "cpp"
+    },
+    "keyboard.dispatch": "keyCode"
+}

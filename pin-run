@@ -1,0 +1,3 @@
+#!/bin/bash
+PIN_ROOT=/home/dirk/ndp_workspace/PIN/pin-3.17-98314-g0c048d619-gcc-linux
+${PIN_ROOT}/pin -t obj/obj-intel64/pintool.so -- "$@"

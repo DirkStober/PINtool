@@ -1,0 +1,17 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "/home/dirk/ndp_workspace/PIN/pin-3.17-98314-g0c048d619-gcc-linux/**"
+            ],
+            "defines": [],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c18",
+            "cppStandard": "c++14",
+            "intelliSenseMode": "gcc-x86"
+        }
+    ],
+    "version": 4
+}
