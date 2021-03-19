@@ -3,12 +3,14 @@
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
+#include "pthread.h"
+#include "testCPP.h"
 
 
-
+#define TEST_INTERACTIVE 1
 // Test with User input 
 int TestInteractive(){
-	NDP::PT * test_pt = new NDP::PT(2048);	
+	NDP::PT * test_pt = new NDP::PT(2048,1);	
 	std::cout << "Hello this is the graphical test \n";
 	int *pg;
 	std::cout << "0: exit; 1: Add memory (start,size); 2: Acc addr (addr,val)\n";
@@ -28,7 +30,7 @@ int TestInteractive(){
 			case 2:
 				std::cout << "Addr: ";
 				std::cin >> b;
-				r = test_pt->get_page(b,&pg);
+				r = test_pt->get_page(b,&pg,0);
 				if(r == 0){
 					std::cout << "Hit!";
 					std::cout << "Val: " << *pg << std::endl;
@@ -61,10 +63,12 @@ using namespace NDP;
 /* Test Constructor & Deconstructor */
 int testCD(){
 
-	PT * testpt = new PT(2048);
-	int ** tmp;
-	testpt->get_page(123,tmp);
+	PT * testpt = new PT(2048,1);
+	int ** tmp = new (int *);
+	testpt->get_page(123,tmp,0);
+	
 	delete testpt;
+	delete tmp;
 	return 0;
 }
 
@@ -79,7 +83,7 @@ int aux_run(
 {	
 	int ** tmp = new (int * );
 	for(int i = 0; i < n; i++){
-		if(tp->get_page(acc[i],tmp) != ret[i]){
+		if(tp->get_page(acc[i],tmp,0) != ret[i]){
 			printf("Expected %d got %d\n",ret[i],**tmp);
 			return i+1;
 		}
@@ -98,7 +102,7 @@ int aux_run(
 }
 
 int test1(){
-	PT * tp = new PT(1024);
+	PT * tp = new PT(1024,1);
 	tp->add_memblock(0,200);
 	tp->add_memblock(201,400);
 	tp->add_memblock(700,4096);
@@ -119,17 +123,17 @@ int test1(){
 
 
 int test2(){
-	PT * tp = new PT(1073741824);
+	PT * tp = new PT(1073741824,1);
 
 	uint64_t t  = 1073741824;
 	t = t*3;
 	tp->add_memblock(0,t);
 	int ** tmp = new (int *);
-	if(tp->get_page(1293210,tmp) != ACC_PAGE_SUCC){
+	if(tp->get_page(1293210,tmp,0) != ACC_PAGE_SUCC){
 		return 1;
 	}
 	tp->rem_memblock(0,t);
-	int r = tp->get_page(1293210,tmp); 
+	int r = tp->get_page(1293210,tmp,0); 
 	if(r != ACC_PAGE_ABOVE){
 		fprintf(stderr,"Expected %d got %d \n",ACC_PAGE_ABOVE,r);
 		return 1;
@@ -143,9 +147,6 @@ int test2(){
 
 
 
-// Test Function have no Input and an Int as Output
-typedef int TestFn(); 
-typedef TestFn * TestFnPtr ; 
 
 /* Put Test Cases Here */
 TestFnPtr TestCases[] = {
@@ -157,52 +158,7 @@ TestFnPtr TestCases[] = {
 
 
 
-
 int main(int argc, char * argv[]){
-	int choice;
-	// If no input is given run all tests
-	if(argc < 2){
-		printf("Running all tests...\n");
-		int i = 0;
-		while(TestCases[i] != NULL){
-			int r = TestCases[i]();	
-			if(r){
-				fprintf(stderr, "Test %d failed with error %d!\n", i,r);
-				return 1;
-			}
-			else{
-				printf("Test %d passed.\n",i);	
-			}
-			i++;
-		}
-		printf("All %d tests passed.\n",i);
-		return 0;
-	}
-	const int select = atoi(argv[1]);
-	if(select == -1){
-	       	// Run User interface test
-	       	TestInteractive();
-		return 0;	
-	}
-	else if(TestCases[select] != NULL){
-		printf("Running Test: %d ...\n",select);
-		int r = TestCases[select]();
-		if(r){
-			fprintf(stderr, "Test %d failed with error %d!\n",select,r);
-		}
-		else{
-			fprintf(stdout, "Test %d passed. \n",select);
-		}
-		return r;
-	}
-	else{
-		fprintf(stderr, "Test %d not implemented!\n",select);
-		return -1;
-	}
-	return 0;
+	int r =  testCPP(argc,argv,TestCases);
+	return r;
 }
-
-
-
-
-

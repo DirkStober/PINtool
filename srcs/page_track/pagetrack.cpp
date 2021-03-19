@@ -10,12 +10,52 @@ uint64_t log_2_int(uint64_t a){
 
 using namespace NDP;
 
-PT::PT(int p_size){
-	page_size = p_size;
-	page_off = log_2_int(p_size);
+// Spinlocks
+
+inline void tas_lock(std::atomic_bool *l)
+{
+	while(!(l->exchange(true))){
+		asm volatile("pause\n": : :"memory");
+	};
 }
 
-PT::~PT(){}
+inline void tas_unlock(std::atomic_bool* l)
+{
+	l->store(false);	
+}
+
+inline void tas_lock_all(std::atomic_bool* locks, int n)
+{
+	for(int i = 0; i < n; i++){		
+		tas_lock(&(locks[i]));
+	}
+}
+
+inline void tas_unlock_all(std::atomic_bool* locks, int n)
+{
+	for(int i = 0; i < n; i++){		
+		tas_unlock(&(locks[i]));
+	}
+}
+	
+
+
+
+
+
+PT::PT(int p_size, int num_threads){
+	page_size = p_size;
+	page_off = log_2_int(p_size);
+
+	// allocate locks and set to 0
+	locks = new std::atomic_bool[num_threads]{};
+	
+}
+
+PT::~PT()
+{
+	delete locks;
+}
 
 // Searches vector for matching element
 int search_vec_page(
@@ -32,6 +72,8 @@ int search_vec_page(
 }
 
 int PT::add_memblock(uint64_t mem_start, uint64_t mem_size){
+	// lock all locks
+	tas_lock_all(locks,num_threads);	
 	// Shift addresses by page size
 	uint64_t pn_start = mem_start >> page_off;
 	uint64_t mem_stop = mem_start + mem_size -1;
@@ -108,14 +150,18 @@ int PT::add_memblock(uint64_t mem_start, uint64_t mem_size){
 		}
 		i++;
 	}
+	tas_unlock_all(locks,num_threads);	
 	return 0;
 }
 	
-int PT::get_page(uint64_t addr, int ** mem_block){
+int PT::get_page(uint64_t addr, int ** mem_block, int tid ){
+	// Lock thread specific lock
+	tas_lock(&locks[tid]);
 	// Check if address is inside heap i.e check if address is higher than
 	// high address
 	if(addr > high_addr){
 		*mem_block = NULL;
+		tas_unlock(&locks[tid]);
 		return ACC_PAGE_ABOVE;
 	}
 	int i = -1;
@@ -129,6 +175,7 @@ int PT::get_page(uint64_t addr, int ** mem_block){
 	}
 	if(i == -1){
 		*mem_block = NULL;
+		tas_unlock(&locks[tid]);
 		return ACC_PAGE_NOT_FOUND;
 	}
 	uint64_t int_off;
@@ -144,11 +191,12 @@ int PT::get_page(uint64_t addr, int ** mem_block){
 		int_off = int_off -1;
 		*mem_block = &(mem_entries[i].int_pages[int_off]);
 	}
+	tas_unlock(&locks[tid]);
 	return ACC_PAGE_SUCC;
 }	
 
-// TODO: Implement
 int PT::rem_memblock(uint64_t mem_start, uint64_t  mem_size){
+	tas_lock_all(locks,num_threads);	
 	// Find the memory block
 	int i  = search_vec_page(mem_start,start_addr);
 	struct mem_entry tmp_mem = mem_entries[i];
@@ -197,5 +245,11 @@ int PT::rem_memblock(uint64_t mem_start, uint64_t  mem_size){
 	if(tmp_mem.int_pages != NULL){
 		delete tmp_mem.int_pages;
 	}
+	tas_unlock_all(locks,num_threads);	
 	return 0;
 }
+
+
+
+
+
