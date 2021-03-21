@@ -2,7 +2,7 @@
 
 
 
-int testCPP(int n, char ** args, TestFnPtr * TCPP_TestCases)
+int testCPP(int n, char ** args, TestFnPtr * TCPP_TestCases, TestFnPtr  TCPP_TestInter)
 {	
 	int choice;
 	// If no input is given run all tests
@@ -24,7 +24,17 @@ int testCPP(int n, char ** args, TestFnPtr * TCPP_TestCases)
 		return 0;
 	}
 	int select = atoi(args[1]);
-	if(TCPP_TestCases[select] != NULL){
+	if(select == -1){
+		if(TCPP_TestInter != NULL){
+			printf("Running interactive test.\n");
+			TCPP_TestInter();
+		}
+		else{
+			fprintf(stderr,"Interactive Test function not defined!\n");
+		}
+		return 0;
+	}
+	else if(TCPP_TestCases[select] != NULL){
 		printf("Running Test: %d ...\n",select);
 		int r = TCPP_TestCases[select]();
 		if(r){

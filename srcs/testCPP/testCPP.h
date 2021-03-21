@@ -13,7 +13,7 @@ typedef TestFn * TestFnPtr ;
 
 
 
-int testCPP(int n, char * args[], TestFnPtr * TCPP_TestCases);
+int testCPP(int n, char * args[], TestFnPtr * TCPP_TestCases, TestFnPtr  TCPP_TestInter);
 
 
 

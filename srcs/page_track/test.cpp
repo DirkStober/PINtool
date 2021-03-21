@@ -144,6 +144,65 @@ int test2(){
 }
 
 
+// test with multiple threads
+// Main thread allocates and deallocates memory while others try to access it
+
+
+struct testMT0_args{
+	int tid;
+	PT * page_t;
+};
+
+void * testMT0_threads(void * ptr);
+int testMT0()
+{
+	int num_threads = 4;
+
+	struct testMT0_args data_in[num_threads];
+
+	PT * tp = new PT(2048,num_threads);
+
+	pthread_t threads[num_threads];	
+	for(int i = 1; i <num_threads; i++){
+		data_in[i].page_t = tp;
+		data_in[i].tid = i;
+		pthread_create(&threads[i], NULL, testMT0_threads,&data_in[i]);
+	};
+	// main thread
+	for(int i = 0; i < 20; i++){
+		tp->add_memblock(i*100,100);
+	}
+	for(int i = 0; i < 20; i++){
+		tp->rem_memblock(i*100,100);
+	}
+	for(int j=1; j < num_threads ; j++)
+   	{
+		pthread_join( threads[j], NULL);
+   	}
+	delete tp;
+	return 0;
+}
+
+void * testMT0_threads(void * ptr)
+{
+
+	
+	struct testMT0_args  * data_in = (struct testMT0_args *) ptr;
+	int tid = data_in->tid;
+	PT * tp = data_in->page_t;
+	int ** tmp = new(int *);
+	int cnt = 0;
+	for(int i = 0; i < 1000; i++){
+		if(tp->get_page(i*tid,tmp,tid) == ACC_PAGE_SUCC){
+			**tmp = tid;
+			cnt++;
+		}
+	}
+	delete tmp;
+	printf("Thread: %d, hits: %d \n",tid,cnt);
+	return 0;
+}
+
 
 
 
@@ -153,12 +212,13 @@ TestFnPtr TestCases[] = {
 	&testCD,
 	&test1,
 	&test2,
+	&testMT0,
 	NULL
 };
 
 
 
 int main(int argc, char * argv[]){
-	int r =  testCPP(argc,argv,TestCases);
+	int r =  testCPP(argc,argv,TestCases,&TestInteractive);
 	return r;
 }
