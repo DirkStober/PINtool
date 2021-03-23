@@ -15,7 +15,7 @@ std::shared_mutex mutex;
 #define TEST_INTERACTIVE 1
 // Test with User input 
 int TestInteractive(){
-	NDP::PT * test_pt = new NDP::PT(2048,1);	
+	NDP::PT * test_pt = new NDP::PT(2048);	
 	std::cout << "Hello this is the graphical test \n";
 	int pg;
 	std::cout << "0: exit; 1: Add memory (start,size); 2: Acc addr (addr,val)\n";
@@ -68,7 +68,7 @@ using namespace NDP;
 /* Test Constructor & Deconstructor */
 int testCD(){
 
-	PT * testpt = new PT(2048,1);
+	PT * testpt = new PT(2048);
 	int  tmp = 0;
 	int r = -10;
 	testpt->acc_page(123,tmp,&r);
@@ -103,7 +103,7 @@ int aux_run(
 }
 
 int test1(){
-	PT * tp = new PT(1024,1);
+	PT * tp = new PT(1024);
 	tp->add_memblock(0,200);
 	tp->add_memblock(201,400);
 	tp->add_memblock(700,4096);
@@ -115,16 +115,16 @@ int test1(){
 	if(r){
 		return r;
 	};
-	tp->rem_memblock(0,200);
-	tp->rem_memblock(201,400);
-	tp->rem_memblock(700,4096);
+	tp->rem_memblock(0);
+	tp->rem_memblock(201);
+	tp->rem_memblock(700);
 	delete tp;
 	return 0;
 }
 
 
 int test2(){
-	PT * tp = new PT(1073741824,1);
+	PT * tp = new PT(1073741824);
 
 	uint64_t t  = 1073741824;
 	t = t*3;
@@ -133,7 +133,7 @@ int test2(){
 	if(tp->acc_page(1293210,tmp,&tmp) != ACC_PAGE_SUCC){
 		return 1;
 	}
-	tp->rem_memblock(0,t);
+	tp->rem_memblock(0);
 	int r = tp->acc_page(1293210,tmp,&tmp); 
 	if(r != ACC_PAGE_ABOVE){
 		fprintf(stderr,"Expected %d got %d \n",ACC_PAGE_ABOVE,r);
@@ -161,7 +161,7 @@ int testMT0()
 
 	struct testMT0_args data_in[num_threads];
 
-	PT * tp = new PT(2048,num_threads);
+	PT * tp = new PT(2048);
 
 	pthread_t threads[num_threads];	
 	for(int i = 1; i <num_threads; i++){
@@ -177,7 +177,7 @@ int testMT0()
 	}
 	for(int i = 0; i < 20; i++){
 		mutex.lock();
-		tp->rem_memblock(i*100,100);
+		tp->rem_memblock(i*100);
 		mutex.unlock();
 	}
 	for(int j=1; j < num_threads ; j++)

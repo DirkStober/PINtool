@@ -41,14 +41,13 @@ struct mem_entry{
 
 class PT {
 	public:
-	PT(int p_size, int num_t);
+	PT(int p_size);
 	~PT();
 	int add_memblock(uint64_t mem_start, uint64_t mem_size);  
 	int acc_page(uint64_t addr, int new_value, int * prev_value);
-	int rem_memblock(uint64_t mem_start, uint64_t mem_size);
+	int rem_memblock(uint64_t mem_start);
 	int page_size;
 	int page_off;
-	int num_threads;
 	// If mem access is above this it is assumed to access the stack
 	uint64_t high_addr;
 

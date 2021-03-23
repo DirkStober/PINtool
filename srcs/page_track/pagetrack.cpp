@@ -6,7 +6,7 @@ using namespace NDP;
 
 
 
-PT::PT(int p_size, int num_t){
+PT::PT(int p_size){
 	page_size = p_size;
 	uint64_t a = p_size;
 	page_off = 0;
@@ -14,7 +14,6 @@ PT::PT(int p_size, int num_t){
 		page_off++;
 	}
 
-	num_threads = num_t;
 	
 }
 
@@ -157,11 +156,15 @@ int PT::acc_page(uint64_t addr, int new_value, int * prev_value ){
 	return ACC_PAGE_SUCC;
 }	
 
-int PT::rem_memblock(uint64_t mem_start, uint64_t  mem_size){
+int PT::rem_memblock(uint64_t mem_start){
 	// Find the memory block
 	int i  = search_vec_page(mem_start,start_addr);
 	struct mem_entry tmp_mem = mem_entries[i];
 	
+	
+	uint64_t p_start,p_stop;
+	p_start = start_page_addr[i];
+	p_stop  = stop_page_addr[i]; 
 
 	if(i == ((int) mem_entries.size() - 1)){
 		mem_entries.pop_back();
@@ -188,9 +191,6 @@ int PT::rem_memblock(uint64_t mem_start, uint64_t  mem_size){
 				+ i);
 	}
 
-	uint64_t p_start,p_stop;
-	p_start = mem_start >> page_off;
-	p_stop  = (mem_start + mem_size -1) >> page_off;
 	if(search_vec_page(p_start,stop_page_addr) == -1){
 		// Required because block can be first on the page
 		// with a trailing block on the same page

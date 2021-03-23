@@ -30,3 +30,11 @@
 *.exe
 *.out
 *.app
+
+
+# Vim Swap files
+*.swp
+.*swp
+
+#PIN folder
+PIN/
