@@ -1,7 +1,8 @@
+#ifndef PAGETRACK_H
+#define PAGETRACK_H 1
 #include <vector>
 #include <cstdint>
-#include <atomic>
-
+#include <iostream>
 
 // Return values for access_page
 #define ACC_PAGE_SUCC 0
@@ -9,22 +10,41 @@
 #define ACC_PAGE_NOT_FOUND 2
 
 
+
+// TODO: Figure out a more effective way?
+inline int atomic_exchange(int value, int * target){
+	//load value into register
+	int result;
+	asm (
+			"xchgl %1 , %2;"
+			"movl %1 , %0;"
+			: "=&r" (result)
+			: "r" (value)  ,  "m" (*target)
+			:  "memory" 
+			);
+	return result;
+}
+
+
 namespace NDP{
 
 struct mem_entry{
-	int * top_page; // Points to the top most page
-	int * int_pages; // Internal page completly filled by this allocation
-	int * bot_page; // Points to the bottom most page
+	// Points to the top most page
+	int * top_page;
+	// Internal page completly filled by this allocation
+	int * int_pages; 
+	// Points to the bottom most page
+	int * bot_page; 
 };
 
 
 
 class PT {
 	public:
-	PT(int p_size, int num_threads);
+	PT(int p_size, int num_t);
 	~PT();
 	int add_memblock(uint64_t mem_start, uint64_t mem_size);  
-	int get_page(uint64_t addr, int ** mem_block, int tid  );
+	int acc_page(uint64_t addr, int new_value, int * prev_value);
 	int rem_memblock(uint64_t mem_start, uint64_t mem_size);
 	int page_size;
 	int page_off;
@@ -42,13 +62,12 @@ class PT {
 	std::vector<struct mem_entry>  mem_entries;
 
 
-	// Use atomics to disallow get page during allocation
-	// and deallocation of memory
-	// Allocate one lock for every thread
-	std::atomic_bool * locks;
+
+	
 	
 };
 
 
 
 }
+#endif

@@ -5,6 +5,11 @@
 #include <ctime>
 #include "pthread.h"
 #include "testCPP.h"
+#include <shared_mutex>
+std::shared_mutex mutex;
+
+
+
 
 
 #define TEST_INTERACTIVE 1
@@ -12,7 +17,7 @@
 int TestInteractive(){
 	NDP::PT * test_pt = new NDP::PT(2048,1);	
 	std::cout << "Hello this is the graphical test \n";
-	int *pg;
+	int pg;
 	std::cout << "0: exit; 1: Add memory (start,size); 2: Acc addr (addr,val)\n";
 	int a,r;
 	std::cin >> a;
@@ -30,12 +35,12 @@ int TestInteractive(){
 			case 2:
 				std::cout << "Addr: ";
 				std::cin >> b;
-				r = test_pt->get_page(b,&pg,0);
+				std::cout << "New Val :";
+				std::cin >> pg;
+				r = test_pt->acc_page(b,pg,&pg);
 				if(r == 0){
-					std::cout << "Hit!";
-					std::cout << "Val: " << *pg << std::endl;
-					std::cout << "New Val :";
-					std::cin >> *pg;
+					std::cout << "Hit!\n";
+					std::cout << "Prev Val: " << pg << std::endl;
 				}
 				else{
 					std::cout << "No hit: " << r << std::endl;
@@ -64,11 +69,11 @@ using namespace NDP;
 int testCD(){
 
 	PT * testpt = new PT(2048,1);
-	int ** tmp = new (int *);
-	testpt->get_page(123,tmp,0);
+	int  tmp = 0;
+	int r = -10;
+	testpt->acc_page(123,tmp,&r);
 	
 	delete testpt;
-	delete tmp;
 	return 0;
 }
 
@@ -81,23 +86,19 @@ int aux_run(
 		int n
 	   )
 {	
-	int ** tmp = new (int * );
+	int r;
 	for(int i = 0; i < n; i++){
-		if(tp->get_page(acc[i],tmp,0) != ret[i]){
-			printf("Expected %d got %d\n",ret[i],**tmp);
+		if(tp->acc_page(acc[i],exp_wr[i],&r) != ret[i]){
+			printf("Expected %d got %d\n",ret[i],r);
 			return i+1;
 		}
 		if(exp_mem[i] != -1){
-			if(exp_mem[i] != **tmp){
-				printf("Expected in page %d got %d\n",exp_mem[i],**tmp);
+			if(exp_mem[i] != r){
+				printf("Expected in page %d got %d\n",exp_mem[i],r);
 				return i +1 ;
 			}
 		}
-		if(exp_wr[i] != -1){
-			**tmp = exp_wr[i];
-		}
 	}
-	delete tmp;
 	return 0;
 }
 
@@ -108,7 +109,7 @@ int test1(){
 	tp->add_memblock(700,4096);
 	uint64_t acc[] = {0,200,201,600,1024,1024,2048,2048,3091,7000};
 	int ret[] = {0,2,0,0,0,0,0,0,0,1};
-	int exp_mem[] = {0,-1,5,3,0,9,0,6,0,-1};
+	int exp_mem[] = {-1,-1,5,3,0,9,0,6,0,-1};
 	int exp_wr[] = {5,-1,3,-1,9,-1,6,-1,-1,-1};
 	int r = aux_run(tp,acc,ret,exp_mem,exp_wr,10);	
 	if(r){
@@ -128,12 +129,12 @@ int test2(){
 	uint64_t t  = 1073741824;
 	t = t*3;
 	tp->add_memblock(0,t);
-	int ** tmp = new (int *);
-	if(tp->get_page(1293210,tmp,0) != ACC_PAGE_SUCC){
+	int tmp; 
+	if(tp->acc_page(1293210,tmp,&tmp) != ACC_PAGE_SUCC){
 		return 1;
 	}
 	tp->rem_memblock(0,t);
-	int r = tp->get_page(1293210,tmp,0); 
+	int r = tp->acc_page(1293210,tmp,&tmp); 
 	if(r != ACC_PAGE_ABOVE){
 		fprintf(stderr,"Expected %d got %d \n",ACC_PAGE_ABOVE,r);
 		return 1;
@@ -170,10 +171,14 @@ int testMT0()
 	};
 	// main thread
 	for(int i = 0; i < 20; i++){
+		mutex.lock();
 		tp->add_memblock(i*100,100);
+		mutex.unlock();
 	}
 	for(int i = 0; i < 20; i++){
+		mutex.lock();
 		tp->rem_memblock(i*100,100);
+		mutex.unlock();
 	}
 	for(int j=1; j < num_threads ; j++)
    	{
@@ -190,15 +195,15 @@ void * testMT0_threads(void * ptr)
 	struct testMT0_args  * data_in = (struct testMT0_args *) ptr;
 	int tid = data_in->tid;
 	PT * tp = data_in->page_t;
-	int ** tmp = new(int *);
+	int tmp;
 	int cnt = 0;
 	for(int i = 0; i < 1000; i++){
-		if(tp->get_page(i*tid,tmp,tid) == ACC_PAGE_SUCC){
-			**tmp = tid;
+		mutex.lock_shared();
+		if(tp->acc_page(i*tid,tmp,&tmp) == ACC_PAGE_SUCC){
 			cnt++;
 		}
+		mutex.unlock();
 	}
-	delete tmp;
 	printf("Thread: %d, hits: %d \n",tid,cnt);
 	return 0;
 }
