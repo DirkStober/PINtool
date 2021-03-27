@@ -6,7 +6,8 @@ using namespace NDP;
 
 
 
-PT::PT(int p_size){
+PT::PT(int p_size, int data_distribution){
+	data_distribution = data_distribution;
 	page_size = p_size;
 	uint64_t a = p_size;
 	page_off = 0;
@@ -114,14 +115,18 @@ int PT::add_memblock(uint64_t mem_start, uint64_t mem_size){
 	
 
 
+/*
+ * No Hit 
+ * Above High addr
+ * Page Local 
+ * Page not local
+ */
 
-
-int PT::acc_page(uint64_t addr, int new_value, int * prev_value ){
-	// Check if address is inside heap i.e check if address is higher than
-	// high address
+int PT::acc_page(uint64_t addr, int mem_id){
+	// Check if address is inside heap i.e check 
+	// if address is higher than high addr
 	if(addr > high_addr){
 		//TODO: Define value properly
-		*prev_value = -2 ;	
 		return ACC_PAGE_ABOVE;
 	}
 	int i = -1;
@@ -134,7 +139,6 @@ int PT::acc_page(uint64_t addr, int new_value, int * prev_value ){
 		}
 	}
 	if(i == -1){
-		*prev_value = -2;	
 		return ACC_PAGE_NOT_FOUND;
 	}
 	uint64_t int_off;
@@ -151,17 +155,23 @@ int PT::acc_page(uint64_t addr, int new_value, int * prev_value ){
 		int_off = int_off -1;
 		mem_block = &(mem_entries[i].int_pages[int_off]);
 	}
-	//TODO: Relax memory ordering sequential const prob. not neccessary
-	*prev_value = atomic_exchange(new_value,mem_block);	
-	return ACC_PAGE_SUCC;
+	// Page is local 
+	if(*mem_block == mem_id){
+		return ACC_PAGE_SUCC_LOCAL;
+	}
+	// Page is not local
+	if(*mem_block > -1){
+		return ACC_PAGE_SUCC_NOT_LOCAL;
+	}
+	// Page is touched by thread first
+	*mem_block = mem_id;
+	return ACC_PAGE_SUCC_LOCAL;
 }	
 
 int PT::rem_memblock(uint64_t mem_start){
 	// Find the memory block
 	int i  = search_vec_page(mem_start,start_addr);
 	struct mem_entry tmp_mem = mem_entries[i];
-	
-	
 	uint64_t p_start,p_stop;
 	p_start = start_page_addr[i];
 	p_stop  = stop_page_addr[i]; 
@@ -209,7 +219,11 @@ int PT::rem_memblock(uint64_t mem_start){
 	return 0;
 }
 
+ 
 
+	
+	
+	
 
 
 
