@@ -48,7 +48,7 @@ struct mem_entry{
 
 class PT {
 	public:
-	PT(int p_size, int data_distribution );
+	PT(int p_size, int dd, int nmn);
 	~PT();
 	int add_memblock(uint64_t mem_start, uint64_t mem_size);  
 	int acc_page(uint64_t addr, int mem_id);
@@ -56,6 +56,7 @@ class PT {
 	int page_size;
 	int page_off;
 	int data_distribution;
+	int num_mem_modules;
 	// If mem access is above this it is assumed to access the stack
 	uint64_t high_addr;
 
@@ -69,7 +70,7 @@ class PT {
 	std::vector<struct mem_entry>  mem_entries;
 
 	private:
-	int initialize_pages(int distro, int * pages, int num_pages);
+	int initialize_page(int * mem, int num_pages, uint64_t page_addr);
 };
 
 

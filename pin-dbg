@@ -1,0 +1,5 @@
+#!/bin/sh
+PIN_ROOT=PIN/pin-3.17-98314-g0c048d619-gcc-linux
+${PIN_ROOT}/pin -pause_tool 20 -t obj/obj-intel64/pintool.so "$@"
+
+

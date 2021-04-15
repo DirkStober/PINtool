@@ -2,16 +2,17 @@ SRCDIR:=srcs/
 TLBDIR:=$(SRCDIR)tlb_sim/
 MEMTDIR:=$(SRCDIR)page_track/
 OBJDIR:=obj/$(OBJDIR)
+DBGFLG:= -g
 
 
 $(OBJDIR)pagetrack$(OBJ_SUFFIX): $(MEMTDIR)pagetrack.cpp $(MEMTDIR)pagetrack.h
-	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
+	$(CXX) $(DBGFLG) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
 
 $(OBJDIR)tlb$(OBJ_SUFFIX): $(TLBDIR)tlb.cpp $(TLBDIR)tlb.h
-	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
+	$(CXX) $(DBGFLG) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
 
 $(OBJDIR)pintool$(OBJ_SUFFIX): $(SRCDIR)pintool.cpp $(OBJDIR)tlb.o $(TLBDIR)tlb.h $(OBJDIR)pagetrack.o $(MEMTDIR)pagetrack.h
-	$(CXX) $(TOOL_CXXFLAGS) -I./$(TLBDIR) -I./$(MEMTDIR) $(COMP_OBJ)$@ $<
+	$(CXX) $(DBGFLG) $(TOOL_CXXFLAGS) -I./$(TLBDIR) -I./$(MEMTDIR) $(COMP_OBJ)$@ $<
 
 $(OBJDIR)pintool$(PINTOOL_SUFFIX): $(OBJDIR)pintool$(OBJ_SUFFIX) $(OBJDIR)tlb$(OBJ_SUFFIX) $(TLBDIR)tlb.h $(OBJDIR)pagetrack.o $(MEMTDIR)pagetrack.h
 	$(LINKER) $(TOOL_LDFLAGS_NOOPT) $(LINK_EXE)$@ $(^:%.h=) $(TOOL_LPATHS) $(TOOL_LIBS) 

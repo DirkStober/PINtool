@@ -1,6 +1,6 @@
 /*
  * Code for Tracking memory acceses of the Binaries
- * Used with PIN 3.18
+ * Used with PIN 3.17
  *
  * Author: Dirk Stober <dirk.stober@posteo.de>
  */
@@ -24,12 +24,15 @@
 
 
 
-#define MAX_NUM_THREADS 64
 
 // Use a lock for access to allocate mem pages
 PIN_RWMUTEX mem_block_lock;
 
 
+// Use a start and stop function to track memory accesses 
+#define NDP_START_STOP_FUNCTION "_NDP_PIN_START_STOP_"
+
+int PIN_ENABLE ;
 
 using std::cout;
 using std::cerr;
@@ -40,11 +43,17 @@ KNOB<std::string> knob_output(KNOB_MODE_WRITEONCE,"pintool",
 
 KNOB<UINT32> knob_page_size(KNOB_MODE_WRITEONCE,"pintool",
 		"p", "2048", "Page Size (bytes)");
+static int ndp_page_size;
 	
 KNOB<UINT32> knob_page_distribution(KNOB_MODE_WRITEONCE, "pintool",
 		"org", "0", "Initial Page distribution (0 = First Touch,org > 0 => Stride with org ) ");
 
-static int ndp_page_size;
+KNOB<UINT32> knob_num_mems(KNOB_MODE_WRITEONCE, "pintool",
+		"nm", "1", "Number of memory modules threads are equally distributed and should be a multiple of nm");
+
+//TODO: Implement as inputs
+#define NDP_TLB_NUM_ENTRIES 16
+#define MAX_NUM_THREADS 64
 
 #define CL_SIZE 64
 
@@ -63,7 +72,6 @@ typedef struct NDP_TLS_struct ndp_tls;
 
 
 // Thread local storage 
-// TODO: Reimplement using TLS or/and 
 static ndp_tls threads_data[MAX_NUM_THREADS];
 
 
@@ -84,7 +92,9 @@ static VOID SimulateMemOp
 )
 {
 	ndp_tls * tls = &threads_data[tid]; 
+	PIN_RWMutexReadLock(&mem_block_lock);
 	int r = d_mem->acc_page((uint64_t) addr, tls->mem_id);
+	PIN_RWMutexUnlock(&mem_block_lock);
 	if(r == ACC_PAGE_SUCC_LOCAL)
 	{
 		tls->pt_hits++;
@@ -102,7 +112,9 @@ static VOID SimulateMemOp
 
 static VOID ThreadStart(THREADID tid , CONTEXT *ctxt, INT32 flags, VOID * v)
 {
-	threads_data[tid].tlb  = new TLB(16,ndp_page_size);
+	threads_data[tid].tlb  = new TLB(
+			NDP_TLB_NUM_ENTRIES,
+			ndp_page_size);
 }
 
 
@@ -117,6 +129,9 @@ static VOID ThreadFini(THREADID tid, const CONTEXT *ctxt, INT32 flags, VOID * v)
 
 static VOID Instruction(INS ins, VOID * v)
 {
+	if(PIN_ENABLE == 0){
+		return;
+	}
 	UINT32 memOperands = INS_MemoryOperandCount(ins);
 	for(UINT32 memOp =0; memOp < memOperands; memOp++){
 		UINT32 size = INS_MemoryOperandSize(ins,memOp);
@@ -129,6 +144,17 @@ static VOID Instruction(INS ins, VOID * v)
 	}
 }
 
+static VOID PIN_START_STOP(ADDRINT val)
+{
+	printf("H: %lu \n",val);
+	if(val){
+		PIN_ENABLE = 1;
+	}
+	else{
+		PIN_ENABLE = 0;
+	}
+}
+
 
 static VOID MallocBefore(uint64_t * s_out, ADDRINT size)
 {
@@ -138,15 +164,15 @@ static VOID MallocBefore(uint64_t * s_out, ADDRINT size)
 static VOID MallocAfter(uint64_t * size, ADDRINT ret)
 {
 	// add mem block !!
+	//printf("MALLOC: addr:%lu size:%lu \n",ret, *size);
 	PIN_RWMutexWriteLock(&mem_block_lock);
 	d_mem->add_memblock(ret,*size);
 	PIN_RWMutexUnlock(&mem_block_lock);
 
 }
-
 static VOID Free(CHAR * name, ADDRINT ret)
 {
-	PIN_RWMutexTryReadLock(&mem_block_lock);
+	PIN_RWMutexWriteLock(&mem_block_lock);
 	d_mem->rem_memblock(ret);
 	PIN_RWMutexUnlock(&mem_block_lock);
 }
@@ -189,6 +215,23 @@ static VOID IMAGE(IMG img, VOID *v)
 	    	               IARG_END);
 	    	RTN_Close(freeRtn);
 	}
+	RTN ssRTN = RTN_FindByName(img, NDP_START_STOP_FUNCTION);
+	if(RTN_Valid(ssRTN)){
+		RTN_Open(ssRTN);
+		RTN_InsertCall(ssRTN, IPOINT_BEFORE, (AFUNPTR) PIN_START_STOP,
+				IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+				IARG_END);
+		RTN_Close(ssRTN);
+	}
+
+#ifdef DEBUG_NDP
+	for( SEC sec= IMG_SecHead(img); SEC_Valid(sec); sec = SEC_Next(sec) ){
+		for( RTN rtn= SEC_RtnHead(sec); RTN_Valid(rtn); rtn = RTN_Next(rtn) ){
+			std::cout << RTN_Name(rtn) << std::endl;
+		}
+	};
+#endif
+
 }
 
 INT32 Usage(){
@@ -224,10 +267,15 @@ int main(int argc, char * argv[])
 		return Usage();
 	}
 	PIN_RWMutexInit(&mem_block_lock);
+	PIN_ENABLE = 0;
 	ndp_page_size = knob_page_size.Value();
 	int init_dd = knob_page_distribution.Value();
+	int num_mems = knob_num_mems.Value();
 	// Allocate new pagetrack
-	d_mem = new NDP::PT(ndp_page_size,init_dd);
+	d_mem = new NDP::PT(
+			ndp_page_size,
+			init_dd,
+			num_mems);
 
 	INS_AddInstrumentFunction(Instruction,0);
 	IMG_AddInstrumentFunction(IMAGE,0);

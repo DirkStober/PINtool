@@ -6,15 +6,15 @@ using namespace NDP;
 
 
 
-PT::PT(int p_size, int data_distribution){
-	data_distribution = data_distribution;
+PT::PT(int p_size, int dd, int nmn){
+	data_distribution = dd;
+	num_mem_modules = nmn;
 	page_size = p_size;
 	uint64_t a = p_size;
 	page_off = 0;
 	while(a >>= 1){
 		page_off++;
 	}
-
 	
 }
 
@@ -51,7 +51,7 @@ int PT::add_memblock(uint64_t mem_start, uint64_t mem_size){
 	// TODO: Different initialization modes
 	else{
 		bp = new int;
-		*bp = -1;
+		initialize_page(bp,1,pn_start);
 	}
 	// If top page exists then point pointer to it
 	 k = search_vec_page(pn_stop,start_page_addr);
@@ -62,7 +62,7 @@ int PT::add_memblock(uint64_t mem_start, uint64_t mem_size){
 	// allocate another page for top page
 	else if( (mem_size >> page_off) > 0){
 		tp = new int;
-		*tp = -1;
+		initialize_page(tp,1,pn_stop);
 	}
 	else{
 		// Else point top page to bot page
@@ -70,7 +70,8 @@ int PT::add_memblock(uint64_t mem_start, uint64_t mem_size){
 	}
 	// allocate memory for internal pages
 	if(pn_stop - pn_start > 1){	
-		int_p = new int[pn_stop - pn_start - 1]{};
+		int_p = new int[pn_stop - pn_start - 1];
+		initialize_page(int_p,pn_stop-pn_start-1,pn_start+1);
 	}
 	else{
 		int_p = NULL;
@@ -219,8 +220,34 @@ int PT::rem_memblock(uint64_t mem_start){
 	return 0;
 }
 
- 
 
+int PT::initialize_page
+(
+		int * mem, 
+		int num_pages, 
+		uint64_t page_addr
+)
+{
+	if(data_distribution == PT_INIT_FIRST_TOUCH){
+		for(int i = 0; i < num_pages ; i++){
+			mem[i] = -1;	
+		}
+		return 0;
+	}
+	// Stride is the data distribution
+	int stride = data_distribution;
+	// Divide page addr by stride
+	uint64_t tmp = page_addr/stride;
+	tmp = tmp % num_mem_modules;
+	for(int i = 0; i < num_pages; i++)
+	{
+		for(int j = 0; j < stride; j++){
+			mem[i*stride + j] = (int) tmp;
+		}
+		tmp = (tmp + 1) % num_mem_modules;
+	}
+	return 0;
+}
 	
 	
 	
