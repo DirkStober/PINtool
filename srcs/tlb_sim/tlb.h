@@ -3,26 +3,18 @@
 #ifndef TLB_H
 #define TLB_H 100
 
-#define ADDR_LENGTH 64
-#define TLB_ASSO 1
+#define TLB_HIT 1
+#define TLB_MISS 0
 
 
-extern int hits;
-extern int misses;
 
-uint64_t log_2_int(uint64_t a);
 
 class TLB {
 	public:
-		TLB(int num_entries, int p_size );
+		TLB(int num_entries);
 		~TLB();
 		uint64_t * entries;
-		int size;
-		int page_size;
-		int hits;
-		int misses;
-		int page_offset;
 		int index_bits;
-		int tlb_access(uint64_t virtual_addr);
+		int tlb_access(uint64_t page_addr);
 };
 #endif

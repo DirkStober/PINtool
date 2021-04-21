@@ -4,12 +4,13 @@ TESTSRC=../testCPP/
 RM=rm -f 
 SRCS=test.cpp pagetrack.cpp
 OBJS=$(addprefix $(OBJDIR),$(subst .cpp,.o,$(SRCS))) $(TESTSRC)testCPP.o
-CXXFLAGS= -O3 -pthread -I$(TESTSRC)
+CXXFLAGS= -g  -pthread -I$(TESTSRC)
+
+
+all: test
 
 pt: pagetrack.cpp pagetrack.h
 	$(CXX) -c pagetrack.cpp -o $(OBJDIR)pagetrack.o
-
-all: test
 
 test: $(OBJS) 
 	$(CXX) -std=c++17 $(CXXFLAGS)  -o test $(OBJS) 

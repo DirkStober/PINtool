@@ -1,4 +1,5 @@
 #include "pagetrack.h"
+#include <cstring>
 
 using namespace NDP;
 
@@ -6,251 +7,118 @@ using namespace NDP;
 
 
 
-PT::PT(int p_size, int dd, int nmn){
-	data_distribution = dd;
-	num_mem_modules = nmn;
-	page_size = p_size;
-	uint64_t a = p_size;
-	page_off = 0;
-	while(a >>= 1){
-		page_off++;
-	}
+PT::PT(uint64_t num_mem_in){
+	num_mem = num_mem_in;
+	high_addr = ~(0b0);
+	low_addr = ~(0b0);
+
+	lock_check = 0;
 	
 }
 
-PT::~PT(){}
-
-// Searches vector for matching element
-int search_vec_page(
-	uint64_t p_in, 
-	std::vector<uint64_t> p_addrs
-	)
-{
-	for(uint64_t i = 0; i < p_addrs.size();i++){
-		if(p_addrs[i] == p_in){
-			return i;
-		}
+PT::~PT(){
+	if((high_addr == !(0b0)) || ( low_addr == !(0b0))){
+		free(page_entries);
 	}
-	return -1;
+	return;
 }
 
-int PT::add_memblock(uint64_t mem_start, uint64_t mem_size){
-	// Shift addresses by page size
-	uint64_t pn_start = mem_start >> page_off;
-	uint64_t mem_stop = mem_start + mem_size -1;
-	uint64_t pn_stop = (mem_stop) >> page_off;
-	//check whether start or stop page already exist
-	int * tp, * int_p , * bp;
-	// If bot page exists then point pointer to it
-	int k = search_vec_page(pn_start,stop_page_addr);
-	if(k > -1)
-	{
-		bp = mem_entries[k].top_page;
+#if (MEM_DIST == FIRST_TOUCH)
+
+int init_pages(int8_t * pe, int n){
+	for(int i = 0; i < n ; i++){
+		pe[i] = -1;
 	}
-	// else allocate and initialize 
-	// TODO: Different initialization modes
-	else{
-		bp = new int;
-		initialize_page(bp,1,pn_start);
+	return 0;
+}
+
+
+int PT::add_memblock(uint64_t p_start, uint64_t p_stop){
+	if(lock_check > 0){
+		std::cerr << " Lock failure multiple threads in add memblock ! \n";
+		return -1;
 	}
-	// If top page exists then point pointer to it
-	 k = search_vec_page(pn_stop,start_page_addr);
-	if(k > -1){
-		tp = mem_entries[k].bot_page;;
-	}
-	// If allocated memory is bigger than one page 
-	// allocate another page for top page
-	else if( (mem_size >> page_off) > 0){
-		tp = new int;
-		initialize_page(tp,1,pn_stop);
-	}
-	else{
-		// Else point top page to bot page
-		tp = bp;
-	}
-	// allocate memory for internal pages
-	if(pn_stop - pn_start > 1){	
-		int_p = new int[pn_stop - pn_start - 1];
-		initialize_page(int_p,pn_stop-pn_start-1,pn_start+1);
-	}
-	else{
-		int_p = NULL;
+	lock_check++;
+	// if not at all initialized
+	if((high_addr == ~((uint64_t) 0b0)) && (low_addr == ~((uint64_t) 0b0))){
+		int new_size = p_stop - p_start +1;
+		page_entries = (int8_t *) malloc(sizeof(int8_t)*(new_size));
+		init_pages(page_entries, (new_size));
+		high_addr = p_stop;
+		low_addr = p_start;
+		lock_check--;
+		return 0;
 	};
-	
-	struct mem_entry tmp_me;
-	tmp_me.top_page = tp;
-	tmp_me.bot_page = bp;
-	tmp_me.int_pages = int_p;
-	uint64_t i = 0;
-	while(1){
-		if(i == mem_entries.size()){
-			mem_entries.push_back(tmp_me);
-			start_page_addr.push_back(pn_start);
-			stop_page_addr.push_back(pn_stop);
-			start_addr.push_back(mem_start);	
-			stop_addr.push_back(mem_stop);	
-			high_addr = mem_stop;
-			break;
-		}
-		if(mem_start < start_addr[i]){
-			mem_entries.insert(
-					mem_entries.begin()
-					+ i,tmp_me);
-			start_page_addr.insert(
-					start_page_addr.begin()
-					+ i,pn_start);
-			stop_page_addr.insert(
-					stop_page_addr.begin()
-					+ i,pn_stop);
-			start_addr.insert(
-					start_addr.begin()
-					+ i,mem_start);
-			stop_addr.insert(stop_addr.begin() 
-					+ i,mem_stop);
-			break;
-		}
-		i++;
-	}
-	return 0;
-}
-	
 
 
-/*
- * No Hit 
- * Above High addr
- * Page Local 
- * Page not local
- */
-
-int PT::acc_page(uint64_t addr, int mem_id){
-	// Check if address is inside heap i.e check 
-	// if address is higher than high addr
-	if(addr > high_addr){
-		//TODO: Define value properly
-		return ACC_PAGE_ABOVE;
-	}
-	int i = -1;
-	for(uint64_t j = 0; j < stop_page_addr.size(); j++){
-		if(addr <= stop_addr[j]){
-			if(addr >= start_addr[j]){
-				i = j;
-				break;
-			}
-		}
-	}
-	if(i == -1){
-		return ACC_PAGE_NOT_FOUND;
-	}
-	uint64_t int_off;
-	int_off = addr >> page_off;
-	int_off = int_off - start_page_addr[i];
-	int * mem_block;
-	if(int_off == 0){
-		mem_block = mem_entries[i].bot_page;
-	}
-	else if((addr >> page_off) == stop_page_addr[i]){
-		mem_block = mem_entries[i].top_page;
-	}
-	else{
-		int_off = int_off -1;
-		mem_block = &(mem_entries[i].int_pages[int_off]);
-	}
-	// Page is local 
-	if(*mem_block == mem_id){
-		return ACC_PAGE_SUCC_LOCAL;
-	}
-	// Page is not local
-	if(*mem_block > -1){
-		return ACC_PAGE_SUCC_NOT_LOCAL;
-	}
-	// Page is touched by thread first
-	*mem_block = mem_id;
-	return ACC_PAGE_SUCC_LOCAL;
-}	
-
-int PT::rem_memblock(uint64_t mem_start){
-	// Find the memory block
-	int i  = search_vec_page(mem_start,start_addr);
-	struct mem_entry tmp_mem = mem_entries[i];
-	uint64_t p_start,p_stop;
-	p_start = start_page_addr[i];
-	p_stop  = stop_page_addr[i]; 
-
-	if(i == ((int) mem_entries.size() - 1)){
-		mem_entries.pop_back();
-		start_page_addr.pop_back();
-		stop_page_addr.pop_back();
-		start_addr.pop_back();	
-		stop_addr.pop_back();	
-		high_addr = stop_addr[i-1];
-	}
-	else{
-		mem_entries.erase(
-				mem_entries.begin()
-				+ i);
-		start_page_addr.erase(
-				start_page_addr.begin()
-				+ i);
-		stop_page_addr.erase(
-				stop_page_addr.begin()
-				+ i);
-		start_addr.erase(
-				start_addr.begin()
-				+ i);
-		stop_addr.erase(stop_addr.begin() 
-				+ i);
-	}
-
-	if(search_vec_page(p_start,stop_page_addr) == -1){
-		// Required because block can be first on the page
-		// with a trailing block on the same page
-		if(search_vec_page(p_start,start_page_addr) == -1){
-			delete tmp_mem.bot_page;
-		}
-	}
-	if(p_start != p_stop){
-		if(search_vec_page(p_stop,start_page_addr) == -1){
-			delete tmp_mem.top_page;
-		}
-	}
-	if(tmp_mem.int_pages != NULL){
-		delete tmp_mem.int_pages;
-	}
-	return 0;
-}
-
-
-int PT::initialize_page
-(
-		int * mem, 
-		int num_pages, 
-		uint64_t page_addr
-)
-{
-	if(data_distribution == PT_INIT_FIRST_TOUCH){
-		for(int i = 0; i < num_pages ; i++){
-			mem[i] = -1;	
-		}
+	// Do nothing if mem region is already initialized
+	if((p_start >= low_addr)  && (p_stop <= high_addr)){
+		lock_check--;
 		return 0;
 	}
-	// Stride is the data distribution
-	int stride = data_distribution;
-	// Divide page addr by stride
-	uint64_t tmp = page_addr/stride;
-	tmp = tmp % num_mem_modules;
-	for(int i = 0; i < num_pages; i++)
-	{
-		for(int j = 0; j < stride; j++){
-			mem[i*stride + j] = (int) tmp;
-		}
-		tmp = (tmp + 1) % num_mem_modules;
-	}
+	// New high and low addr
+	uint64_t new_high = (p_stop > high_addr) ? p_stop : high_addr;
+	uint64_t new_low = (p_start < low_addr) ? p_start : low_addr;
+	// New page 
+	uint64_t new_size = new_high - new_low + 1;
+	int8_t * tmp = (int8_t *)  malloc(sizeof(int8_t) * new_size);
+	// Mem copy old chunk to new array
+	uint64_t l_i = low_addr - new_low;
+	uint64_t r_i = new_high - high_addr;
+	memcpy(&tmp[l_i],page_entries,sizeof(int8_t)*(high_addr - low_addr + 1));
+	// Initialize upper and lower parts 
+	init_pages(tmp, l_i );
+	init_pages(&tmp[high_addr - new_low + 1], r_i);
+	free(page_entries);
+	page_entries = tmp;
+	high_addr = new_high;
+	low_addr = new_low;
+	lock_check--;
 	return 0;
 }
 	
-	
-	
-
+int PT::acc_page(uint64_t p_addr, int8_t mem_id){
+	// See if page on heap
+	if((p_addr < low_addr) || (p_addr > high_addr)){
+		return ACC_PAGE_NOT_HEAP;
+	}
+	// Get Page 
+	int8_t * page = &page_entries[p_addr - low_addr];
+	if(*page == mem_id){
+		return ACC_PAGE_SUCC_LOCAL;
+	}
+	else if(*page > -1){
+		return ACC_PAGE_SUCC_NOT_LOCAL;
+	}
+	else{
+		*page = mem_id;
+		return ACC_PAGE_SUCC_LOCAL;
+	}
+}	
+#else
+int PT::add_memblock(uint64_t p_start, uint64_t p_stop){
+	if(lock_check > 0){
+		std::cerr << " Lock failure multiple threads in add memblock ! \n";
+		return -1;
+	}
+	lock_check++;
+	high_addr = (p_stop > high_addr) ? p_stop : high_addr;
+	low_addr = (page_start < low_addr) ? page_start : low_addr;
+	lock_check--;
+	return 0;
+}
+int PT::acc_page(uint64_t p_addr, int8_t mem_id){
+	if((p_addr < low_addr) || (p_addr > high_addr)){
+		return ACC_PAGE_NOT_HEAP;
+	}
+	int8_t tmp  = (int8_t) (p_addr % num_mem);
+	if(tmp == mem_id){
+		return ACC_PAGE_SUCC_LOCAL;
+	}
+	else{
+		return ACC_PAGE_SUCC_NOT_LOCAL;
+	}
+}
+#endif
 
 

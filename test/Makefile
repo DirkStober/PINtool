@@ -1,3 +1,4 @@
 test: test.c
-	gcc -O3 -fopenmp test.c -o test
+	gcc -S -fverbose-asm -o test.s -O0 -lpthread test.c
+	gcc -o test test.c -O0 -lpthread
 	 

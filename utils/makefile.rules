@@ -2,7 +2,7 @@ SRCDIR:=srcs/
 TLBDIR:=$(SRCDIR)tlb_sim/
 MEMTDIR:=$(SRCDIR)page_track/
 OBJDIR:=obj/$(OBJDIR)
-DBGFLG:= -g
+DBGFLG:=
 
 
 $(OBJDIR)pagetrack$(OBJ_SUFFIX): $(MEMTDIR)pagetrack.cpp $(MEMTDIR)pagetrack.h

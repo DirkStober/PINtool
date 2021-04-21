@@ -1,54 +1,59 @@
 #include <stdio.h>    
 #include <stdlib.h>   
 #include <time.h>
-#include <omp.h>
-
-
-volatile __attribute__((noinline)) void _NDP_PIN_START_STOP_(int i){
-	if(i){
-		printf("NDP Pintool starts tracking now !\n");
-	}
-	else{
-		printf("NDP Pintool stops tacking now !\n");
-	};
-	return;
- };
+#include <pthread.h>
  
+#define num_threads 2
+
+float * a;
+float * b;
+float * c;
+
+void * do_work(void * args){
+
+	int tid = *(int *) args;
+	int i;
+	for(i = tid ; i < 100; i+=num_threads){
+			c[i] = a[i] + b[i];
+	}
+	printf("hello tid: %d \n",tid);
+	return NULL;
+}
+
+
+
 
 
 int main(int argc, char * argv[])
 {
-	float * a;
-	float * b;
-	float * c;
 	a = (float * ) malloc(500*sizeof(float));
 	b = (float * ) malloc(500*sizeof(float));
 	c = (float * ) malloc(1000*sizeof(float));
-	int i;
 
-	omp_set_num_threads(2);
+	int i;
 	srand(time(NULL));
 	for(i = 0; i < 500; i++)
 	{
 		a[i] = rand() % 100 -50; 
 		b[i] = rand() % 100 -50; 
 	}
-	_NDP_PIN_START_STOP_(1);
-	#pragma omp parallel 
-	{
-		printf("TID: %d \n",omp_get_thread_num());
-		for(i = 0; i < 500; i++){
-			c[i] = a[i] * b[i];
-		}
+	int thread_args[num_threads];
+	pthread_t threads[num_threads];
+	for(int i = 1; i < num_threads ; i++){
+		thread_args[i] = i;
+		pthread_create(&threads[i],NULL,do_work, &thread_args[i]);
 	}
-	volatile int stop = 0;
-	_NDP_PIN_START_STOP_(stop);
+	thread_args[0] = 0;
+	do_work(&thread_args[0]);
+	for(int i = 1; i < num_threads ; i++){
+		pthread_join(threads[i],NULL);
+	}
+	
 	free(a);
 	free(b);
 	free(c);
 
 
 	return 0;
-
 }
 
