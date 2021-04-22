@@ -37,6 +37,7 @@
 .*swp
 
 #PIN folder
+PIN/
 bu_*/
 
 # logs and other outputs
