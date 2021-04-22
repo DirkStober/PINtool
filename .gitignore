@@ -43,4 +43,5 @@ bu_*/
 *.txt
 *.log
 
-
+# Ignore graph files
+*.tsv
