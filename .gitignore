@@ -40,4 +40,8 @@
 PIN/
 bu_*/
 
+# logs and other outputs
+*.txt
+*.log
+
 
