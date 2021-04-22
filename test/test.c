@@ -3,7 +3,7 @@
 #include <time.h>
 #include <pthread.h>
  
-#define num_threads 2
+static int num_threads;
 
 float * a;
 float * b;
@@ -13,7 +13,7 @@ void * do_work(void * args){
 
 	int tid = *(int *) args;
 	int i;
-	for(i = tid ; i < 100; i+=num_threads){
+	for(i = tid ; i < 104; i+=num_threads){
 			c[i] = a[i] + b[i];
 	}
 	printf("hello tid: %d \n",tid);
@@ -26,6 +26,12 @@ void * do_work(void * args){
 
 int main(int argc, char * argv[])
 {
+	num_threads = 2;
+	if(argc > 1){
+		num_threads = atoi(argv[1]);
+	}
+
+	printf("#threads: %d\n" , num_threads);
 	a = (float * ) malloc(500*sizeof(float));
 	b = (float * ) malloc(500*sizeof(float));
 	c = (float * ) malloc(1000*sizeof(float));
@@ -37,15 +43,15 @@ int main(int argc, char * argv[])
 		a[i] = rand() % 100 -50; 
 		b[i] = rand() % 100 -50; 
 	}
-	int thread_args[num_threads];
-	pthread_t threads[num_threads];
-	for(int i = 1; i < num_threads ; i++){
+	int * thread_args = (int *) malloc(sizeof(int) * num_threads);
+	pthread_t * threads = (pthread_t * ) malloc(sizeof(pthread_t)  *  num_threads);
+	for(int i = 0; i < num_threads ; i++){
 		thread_args[i] = i;
 		pthread_create(&threads[i],NULL,do_work, &thread_args[i]);
 	}
-	thread_args[0] = 0;
-	do_work(&thread_args[0]);
-	for(int i = 1; i < num_threads ; i++){
+	//thread_args[0] = 0;
+	//do_work(&thread_args[0]);
+	for(int i = 0; i < num_threads ; i++){
 		pthread_join(threads[i],NULL);
 	}
 	

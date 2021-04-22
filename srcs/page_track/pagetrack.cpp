@@ -69,6 +69,10 @@ int PT::add_memblock(uint64_t p_start, uint64_t p_stop){
 	// Initialize upper and lower parts 
 	init_pages(tmp, l_i );
 	init_pages(&tmp[high_addr - new_low + 1], r_i);
+	// TODO: This might be a problem!
+	// Race condition with threads accessing page pointer could be dereferenced while other threads are reading values
+	// Solution for now: Only a host thread is allowed to add memory blocks and must not allocate memory while other
+	// threads are being analyzed
 	free(page_entries);
 	page_entries = tmp;
 	high_addr = new_high;
@@ -91,8 +95,13 @@ int PT::acc_page(uint64_t p_addr, int8_t mem_id){
 		return ACC_PAGE_SUCC_NOT_LOCAL;
 	}
 	else{
-		*page = mem_id;
-		return ACC_PAGE_SUCC_LOCAL;
+		int8_t ret = __atomic_exchange_n(page, &ret, __ATOMIC_RELAXED);
+		if(ret == -1){
+			return ACC_PAGE_SUCC_LOCAL;
+		}
+		else{
+			return ACC_PAGE_SUCC_NOT_LOCAL;
+		}
 	}
 }	
 #else

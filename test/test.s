@@ -32,6 +32,8 @@
 # -msse -msse2 -mstv -mtls-direct-seg-refs -mvzeroupper
 
 	.text
+	.local	num_threads
+	.comm	num_threads,4,4
 	.globl	a
 	.bss
 	.align 8
@@ -68,45 +70,54 @@ do_work:
 	subq	$32, %rsp	#,
 	movq	%rdi, -24(%rbp)	# args, args
 # test.c:14: 	int tid = *(int *) args;
-	movq	-24(%rbp), %rax	# args, tmp93
-	movl	(%rax), %eax	# MEM[(int *)args_13(D)], tmp94
-	movl	%eax, -4(%rbp)	# tmp94, tid
-# test.c:16: 	for(i = tid ; i < 100; i+=num_threads){
-	movl	-4(%rbp), %eax	# tid, tmp95
-	movl	%eax, -8(%rbp)	# tmp95, i
-# test.c:16: 	for(i = tid ; i < 100; i+=num_threads){
+	movq	-24(%rbp), %rax	# args, tmp100
+	movl	(%rax), %eax	# MEM[(int *)args_20(D)], tmp101
+	movl	%eax, -4(%rbp)	# tmp101, tid
+# test.c:16: 	for(i = tid ; i < 104; i+=num_threads){
+	movl	-4(%rbp), %eax	# tid, tmp102
+	movl	%eax, -8(%rbp)	# tmp102, i
+# test.c:16: 	for(i = tid ; i < 104; i+=num_threads){
 	jmp	.L2	#
 .L3:
-# test.c:17: 			c[i] = a[i] ;
+# test.c:17: 			c[i] = a[i] + b[i];
 	movq	a(%rip), %rdx	# a, a.0_1
-	movl	-8(%rbp), %eax	# i, tmp96
+	movl	-8(%rbp), %eax	# i, tmp103
 	cltq
 	salq	$2, %rax	#, _3
-	addq	%rax, %rdx	# _3, _4
-# test.c:17: 			c[i] = a[i] ;
-	movq	c(%rip), %rcx	# c, c.1_5
-	movl	-8(%rbp), %eax	# i, tmp97
+	addq	%rdx, %rax	# a.0_1, _4
+	movss	(%rax), %xmm1	# *_4, _5
+# test.c:17: 			c[i] = a[i] + b[i];
+	movq	b(%rip), %rdx	# b, b.1_6
+	movl	-8(%rbp), %eax	# i, tmp104
 	cltq
-	salq	$2, %rax	#, _7
-	addq	%rcx, %rax	# c.1_5, _8
-# test.c:17: 			c[i] = a[i] ;
-	movss	(%rdx), %xmm0	# *_4, _9
-# test.c:17: 			c[i] = a[i] ;
-	movss	%xmm0, (%rax)	# _9, *_8
-# test.c:16: 	for(i = tid ; i < 100; i+=num_threads){
-	addl	$2, -8(%rbp)	#, i
+	salq	$2, %rax	#, _8
+	addq	%rdx, %rax	# b.1_6, _9
+	movss	(%rax), %xmm0	# *_9, _10
+# test.c:17: 			c[i] = a[i] + b[i];
+	movq	c(%rip), %rdx	# c, c.2_11
+	movl	-8(%rbp), %eax	# i, tmp105
+	cltq
+	salq	$2, %rax	#, _13
+	addq	%rdx, %rax	# c.2_11, _14
+# test.c:17: 			c[i] = a[i] + b[i];
+	addss	%xmm1, %xmm0	# _5, _15
+# test.c:17: 			c[i] = a[i] + b[i];
+	movss	%xmm0, (%rax)	# _15, *_14
+# test.c:16: 	for(i = tid ; i < 104; i+=num_threads){
+	movl	num_threads(%rip), %eax	# num_threads, num_threads.3_16
+	addl	%eax, -8(%rbp)	# num_threads.3_16, i
 .L2:
-# test.c:16: 	for(i = tid ; i < 100; i+=num_threads){
-	cmpl	$99, -8(%rbp)	#, i
+# test.c:16: 	for(i = tid ; i < 104; i+=num_threads){
+	cmpl	$103, -8(%rbp)	#, i
 	jle	.L3	#,
 # test.c:19: 	printf("hello tid: %d \n",tid);
-	movl	-4(%rbp), %eax	# tid, tmp98
-	movl	%eax, %esi	# tmp98,
+	movl	-4(%rbp), %eax	# tid, tmp106
+	movl	%eax, %esi	# tmp106,
 	leaq	.LC0(%rip), %rdi	#,
 	movl	$0, %eax	#,
 	call	printf@PLT	#
 # test.c:20: 	return NULL;
-	movl	$0, %eax	#, _17
+	movl	$0, %eax	#, _24
 # test.c:21: }
 	leave	
 	.cfi_def_cfa 7, 8
@@ -114,6 +125,10 @@ do_work:
 	.cfi_endproc
 .LFE6:
 	.size	do_work, .-do_work
+	.section	.rodata
+.LC1:
+	.string	"#threads: %d\n"
+	.text
 	.globl	main
 	.type	main, @function
 main:
@@ -124,172 +139,206 @@ main:
 	.cfi_offset 6, -16
 	movq	%rsp, %rbp	#,
 	.cfi_def_cfa_register 6
-	subq	$80, %rsp	#,
-	movl	%edi, -68(%rbp)	# argc, argc
-	movq	%rsi, -80(%rbp)	# argv, argv
-# test.c:28: {
-	movq	%fs:40, %rax	# MEM[(<address-space-1> long unsigned int *)40B], tmp143
-	movq	%rax, -8(%rbp)	# tmp143, D.3391
-	xorl	%eax, %eax	# tmp143
-# test.c:29: 	a = (float * ) malloc(500*sizeof(float));
+	subq	$48, %rsp	#,
+	movl	%edi, -36(%rbp)	# argc, argc
+	movq	%rsi, -48(%rbp)	# argv, argv
+# test.c:29: 	num_threads = 2;
+	movl	$2, num_threads(%rip)	#, num_threads
+# test.c:30: 	if(argc > 1){
+	cmpl	$1, -36(%rbp)	#, argc
+	jle	.L6	#,
+# test.c:31: 		num_threads = atoi(argv[1]);
+	movq	-48(%rbp), %rax	# argv, tmp133
+	addq	$8, %rax	#, _1
+# test.c:31: 		num_threads = atoi(argv[1]);
+	movq	(%rax), %rax	# *_1, _2
+	movq	%rax, %rdi	# _2,
+	call	atoi@PLT	#
+# test.c:31: 		num_threads = atoi(argv[1]);
+	movl	%eax, num_threads(%rip)	# _3, num_threads
+.L6:
+# test.c:34: 	printf("#threads: %d\n" , num_threads);
+	movl	num_threads(%rip), %eax	# num_threads, num_threads.4_4
+	movl	%eax, %esi	# num_threads.4_4,
+	leaq	.LC1(%rip), %rdi	#,
+	movl	$0, %eax	#,
+	call	printf@PLT	#
+# test.c:35: 	a = (float * ) malloc(500*sizeof(float));
 	movl	$2000, %edi	#,
 	call	malloc@PLT	#
-# test.c:29: 	a = (float * ) malloc(500*sizeof(float));
-	movq	%rax, a(%rip)	# _1, a
-# test.c:30: 	b = (float * ) malloc(500*sizeof(float));
+# test.c:35: 	a = (float * ) malloc(500*sizeof(float));
+	movq	%rax, a(%rip)	# _5, a
+# test.c:36: 	b = (float * ) malloc(500*sizeof(float));
 	movl	$2000, %edi	#,
 	call	malloc@PLT	#
-# test.c:30: 	b = (float * ) malloc(500*sizeof(float));
-	movq	%rax, b(%rip)	# _2, b
-# test.c:31: 	c = (float * ) malloc(1000*sizeof(float));
+# test.c:36: 	b = (float * ) malloc(500*sizeof(float));
+	movq	%rax, b(%rip)	# _6, b
+# test.c:37: 	c = (float * ) malloc(1000*sizeof(float));
 	movl	$4000, %edi	#,
 	call	malloc@PLT	#
-# test.c:31: 	c = (float * ) malloc(1000*sizeof(float));
-	movq	%rax, c(%rip)	# _3, c
-# test.c:34: 	srand(time(NULL));
+# test.c:37: 	c = (float * ) malloc(1000*sizeof(float));
+	movq	%rax, c(%rip)	# _7, c
+# test.c:40: 	srand(time(NULL));
 	movl	$0, %edi	#,
 	call	time@PLT	#
-# test.c:34: 	srand(time(NULL));
-	movl	%eax, %edi	# _5,
+# test.c:40: 	srand(time(NULL));
+	movl	%eax, %edi	# _9,
 	call	srand@PLT	#
-# test.c:35: 	for(i = 0; i < 500; i++)
-	movl	$0, -52(%rbp)	#, i
-# test.c:35: 	for(i = 0; i < 500; i++)
-	jmp	.L6	#
+# test.c:41: 	for(i = 0; i < 500; i++)
+	movl	$0, -28(%rbp)	#, i
+# test.c:41: 	for(i = 0; i < 500; i++)
+	jmp	.L7	#
+.L8:
+# test.c:43: 		a[i] = rand() % 100 -50; 
+	call	rand@PLT	#
+# test.c:43: 		a[i] = rand() % 100 -50; 
+	movslq	%eax, %rdx	# _10, tmp137
+	imulq	$1374389535, %rdx, %rdx	#, tmp137, tmp138
+	shrq	$32, %rdx	#, tmp139
+	sarl	$5, %edx	#, tmp140
+	movl	%eax, %ecx	# _10, tmp141
+	sarl	$31, %ecx	#, tmp141
+	subl	%ecx, %edx	# tmp141, _11
+	imull	$100, %edx, %ecx	#, _11, tmp142
+	subl	%ecx, %eax	# tmp142, _10
+	movl	%eax, %edx	# _10, _11
+# test.c:43: 		a[i] = rand() % 100 -50; 
+	leal	-50(%rdx), %ecx	#, _12
+# test.c:43: 		a[i] = rand() % 100 -50; 
+	movq	a(%rip), %rdx	# a, a.5_13
+	movl	-28(%rbp), %eax	# i, tmp143
+	cltq
+	salq	$2, %rax	#, _15
+	addq	%rdx, %rax	# a.5_13, _16
+# test.c:43: 		a[i] = rand() % 100 -50; 
+	pxor	%xmm0, %xmm0	# _17
+	cvtsi2ssl	%ecx, %xmm0	# _12, _17
+	movss	%xmm0, (%rax)	# _17, *_16
+# test.c:44: 		b[i] = rand() % 100 -50; 
+	call	rand@PLT	#
+# test.c:44: 		b[i] = rand() % 100 -50; 
+	movslq	%eax, %rdx	# _18, tmp144
+	imulq	$1374389535, %rdx, %rdx	#, tmp144, tmp145
+	shrq	$32, %rdx	#, tmp146
+	sarl	$5, %edx	#, tmp147
+	movl	%eax, %ecx	# _18, tmp148
+	sarl	$31, %ecx	#, tmp148
+	subl	%ecx, %edx	# tmp148, _19
+	imull	$100, %edx, %ecx	#, _19, tmp149
+	subl	%ecx, %eax	# tmp149, _18
+	movl	%eax, %edx	# _18, _19
+# test.c:44: 		b[i] = rand() % 100 -50; 
+	leal	-50(%rdx), %ecx	#, _20
+# test.c:44: 		b[i] = rand() % 100 -50; 
+	movq	b(%rip), %rdx	# b, b.6_21
+	movl	-28(%rbp), %eax	# i, tmp150
+	cltq
+	salq	$2, %rax	#, _23
+	addq	%rdx, %rax	# b.6_21, _24
+# test.c:44: 		b[i] = rand() % 100 -50; 
+	pxor	%xmm0, %xmm0	# _25
+	cvtsi2ssl	%ecx, %xmm0	# _20, _25
+	movss	%xmm0, (%rax)	# _25, *_24
+# test.c:41: 	for(i = 0; i < 500; i++)
+	addl	$1, -28(%rbp)	#, i
 .L7:
-# test.c:37: 		a[i] = rand() % 100 -50; 
-	call	rand@PLT	#
-# test.c:37: 		a[i] = rand() % 100 -50; 
-	movslq	%eax, %rdx	# _6, tmp114
-	imulq	$1374389535, %rdx, %rdx	#, tmp114, tmp115
-	shrq	$32, %rdx	#, tmp116
-	sarl	$5, %edx	#, tmp117
-	movl	%eax, %ecx	# _6, tmp118
-	sarl	$31, %ecx	#, tmp118
-	subl	%ecx, %edx	# tmp118, _7
-	imull	$100, %edx, %ecx	#, _7, tmp119
-	subl	%ecx, %eax	# tmp119, _6
-	movl	%eax, %edx	# _6, _7
-# test.c:37: 		a[i] = rand() % 100 -50; 
-	leal	-50(%rdx), %ecx	#, _8
-# test.c:37: 		a[i] = rand() % 100 -50; 
-	movq	a(%rip), %rdx	# a, a.2_9
-	movl	-52(%rbp), %eax	# i, tmp120
+# test.c:41: 	for(i = 0; i < 500; i++)
+	cmpl	$499, -28(%rbp)	#, i
+	jle	.L8	#,
+# test.c:46: 	int * thread_args = (int *) malloc(sizeof(int) * num_threads);
+	movl	num_threads(%rip), %eax	# num_threads, num_threads.7_26
 	cltq
-	salq	$2, %rax	#, _11
-	addq	%rdx, %rax	# a.2_9, _12
-# test.c:37: 		a[i] = rand() % 100 -50; 
-	pxor	%xmm0, %xmm0	# _13
-	cvtsi2ssl	%ecx, %xmm0	# _8, _13
-	movss	%xmm0, (%rax)	# _13, *_12
-# test.c:38: 		b[i] = rand() % 100 -50; 
-	call	rand@PLT	#
-# test.c:38: 		b[i] = rand() % 100 -50; 
-	movslq	%eax, %rdx	# _14, tmp121
-	imulq	$1374389535, %rdx, %rdx	#, tmp121, tmp122
-	shrq	$32, %rdx	#, tmp123
-	sarl	$5, %edx	#, tmp124
-	movl	%eax, %ecx	# _14, tmp125
-	sarl	$31, %ecx	#, tmp125
-	subl	%ecx, %edx	# tmp125, _15
-	imull	$100, %edx, %ecx	#, _15, tmp126
-	subl	%ecx, %eax	# tmp126, _14
-	movl	%eax, %edx	# _14, _15
-# test.c:38: 		b[i] = rand() % 100 -50; 
-	leal	-50(%rdx), %ecx	#, _16
-# test.c:38: 		b[i] = rand() % 100 -50; 
-	movq	b(%rip), %rdx	# b, b.3_17
-	movl	-52(%rbp), %eax	# i, tmp127
+	salq	$2, %rax	#, _28
+	movq	%rax, %rdi	# _28,
+	call	malloc@PLT	#
+	movq	%rax, -16(%rbp)	# tmp151, thread_args
+# test.c:47: 	pthread_t * threads = (pthread_t * ) malloc(sizeof(pthread_t)  *  num_threads);
+	movl	num_threads(%rip), %eax	# num_threads, num_threads.8_29
 	cltq
-	salq	$2, %rax	#, _19
-	addq	%rdx, %rax	# b.3_17, _20
-# test.c:38: 		b[i] = rand() % 100 -50; 
-	pxor	%xmm0, %xmm0	# _21
-	cvtsi2ssl	%ecx, %xmm0	# _16, _21
-	movss	%xmm0, (%rax)	# _21, *_20
-# test.c:35: 	for(i = 0; i < 500; i++)
-	addl	$1, -52(%rbp)	#, i
-.L6:
-# test.c:35: 	for(i = 0; i < 500; i++)
-	cmpl	$499, -52(%rbp)	#, i
-	jle	.L7	#,
-# test.c:42: 	for(int i = 1; i < num_threads ; i++){
-	movl	$1, -48(%rbp)	#, i
-# test.c:42: 	for(int i = 1; i < num_threads ; i++){
-	jmp	.L8	#
-.L9:
-# test.c:43: 		thread_args[i] = i;
-	movl	-48(%rbp), %eax	# i, tmp129
+	salq	$3, %rax	#, _31
+	movq	%rax, %rdi	# _31,
+	call	malloc@PLT	#
+	movq	%rax, -8(%rbp)	# tmp152, threads
+# test.c:48: 	for(int i = 0; i < num_threads ; i++){
+	movl	$0, -24(%rbp)	#, i
+# test.c:48: 	for(int i = 0; i < num_threads ; i++){
+	jmp	.L9	#
+.L10:
+# test.c:49: 		thread_args[i] = i;
+	movl	-24(%rbp), %eax	# i, tmp153
 	cltq
-	movl	-48(%rbp), %edx	# i, tmp130
-	movl	%edx, -40(%rbp,%rax,4)	# tmp130, thread_args[i_29]
-# test.c:44: 		pthread_create(&threads[i],NULL,do_work, &thread_args[i]);
-	leaq	-40(%rbp), %rdx	#, tmp131
-	movl	-48(%rbp), %eax	# i, tmp133
+	leaq	0(,%rax,4), %rdx	#, _33
+	movq	-16(%rbp), %rax	# thread_args, tmp154
+	addq	%rax, %rdx	# tmp154, _34
+# test.c:49: 		thread_args[i] = i;
+	movl	-24(%rbp), %eax	# i, tmp155
+	movl	%eax, (%rdx)	# tmp155, *_34
+# test.c:50: 		pthread_create(&threads[i],NULL,do_work, &thread_args[i]);
+	movl	-24(%rbp), %eax	# i, tmp156
 	cltq
-	salq	$2, %rax	#, tmp134
-	addq	%rax, %rdx	# tmp134, _22
-# test.c:44: 		pthread_create(&threads[i],NULL,do_work, &thread_args[i]);
-	leaq	-32(%rbp), %rcx	#, tmp135
-	movl	-48(%rbp), %eax	# i, tmp137
+	leaq	0(,%rax,4), %rdx	#, _36
+# test.c:50: 		pthread_create(&threads[i],NULL,do_work, &thread_args[i]);
+	movq	-16(%rbp), %rax	# thread_args, tmp157
+	addq	%rax, %rdx	# tmp157, _37
+# test.c:50: 		pthread_create(&threads[i],NULL,do_work, &thread_args[i]);
+	movl	-24(%rbp), %eax	# i, tmp158
 	cltq
-	salq	$3, %rax	#, tmp138
-	addq	%rcx, %rax	# tmp135, _23
-	movq	%rdx, %rcx	# _22,
+	leaq	0(,%rax,8), %rcx	#, _39
+# test.c:50: 		pthread_create(&threads[i],NULL,do_work, &thread_args[i]);
+	movq	-8(%rbp), %rax	# threads, tmp159
+	addq	%rcx, %rax	# _39, _40
+	movq	%rdx, %rcx	# _37,
 	leaq	do_work(%rip), %rdx	#,
 	movl	$0, %esi	#,
-	movq	%rax, %rdi	# _23,
+	movq	%rax, %rdi	# _40,
 	call	pthread_create@PLT	#
-# test.c:42: 	for(int i = 1; i < num_threads ; i++){
-	addl	$1, -48(%rbp)	#, i
-.L8:
-# test.c:42: 	for(int i = 1; i < num_threads ; i++){
-	cmpl	$1, -48(%rbp)	#, i
-	jle	.L9	#,
-# test.c:46: 	thread_args[0] = 0;
-	movl	$0, -40(%rbp)	#, thread_args[0]
-# test.c:47: 	do_work(&thread_args[0]);
-	leaq	-40(%rbp), %rax	#, tmp139
-	movq	%rax, %rdi	# tmp139,
-	call	do_work	#
-# test.c:48: 	for(int i = 1; i < num_threads ; i++){
-	movl	$1, -44(%rbp)	#, i
-# test.c:48: 	for(int i = 1; i < num_threads ; i++){
-	jmp	.L10	#
-.L11:
-# test.c:49: 		pthread_join(threads[i],NULL);
-	movl	-44(%rbp), %eax	# i, tmp141
+# test.c:48: 	for(int i = 0; i < num_threads ; i++){
+	addl	$1, -24(%rbp)	#, i
+.L9:
+# test.c:48: 	for(int i = 0; i < num_threads ; i++){
+	movl	num_threads(%rip), %eax	# num_threads, num_threads.9_41
+# test.c:48: 	for(int i = 0; i < num_threads ; i++){
+	cmpl	%eax, -24(%rbp)	# num_threads.9_41, i
+	jl	.L10	#,
+# test.c:54: 	for(int i = 0; i < num_threads ; i++){
+	movl	$0, -20(%rbp)	#, i
+# test.c:54: 	for(int i = 0; i < num_threads ; i++){
+	jmp	.L11	#
+.L12:
+# test.c:55: 		pthread_join(threads[i],NULL);
+	movl	-20(%rbp), %eax	# i, tmp160
 	cltq
-	movq	-32(%rbp,%rax,8), %rax	# threads[i_30], _24
+	leaq	0(,%rax,8), %rdx	#, _43
+	movq	-8(%rbp), %rax	# threads, tmp161
+	addq	%rdx, %rax	# _43, _44
+# test.c:55: 		pthread_join(threads[i],NULL);
+	movq	(%rax), %rax	# *_44, _45
 	movl	$0, %esi	#,
-	movq	%rax, %rdi	# _24,
+	movq	%rax, %rdi	# _45,
 	call	pthread_join@PLT	#
-# test.c:48: 	for(int i = 1; i < num_threads ; i++){
-	addl	$1, -44(%rbp)	#, i
-.L10:
-# test.c:48: 	for(int i = 1; i < num_threads ; i++){
-	cmpl	$1, -44(%rbp)	#, i
-	jle	.L11	#,
-# test.c:52: 	free(a);
-	movq	a(%rip), %rax	# a, a.4_25
-	movq	%rax, %rdi	# a.4_25,
+# test.c:54: 	for(int i = 0; i < num_threads ; i++){
+	addl	$1, -20(%rbp)	#, i
+.L11:
+# test.c:54: 	for(int i = 0; i < num_threads ; i++){
+	movl	num_threads(%rip), %eax	# num_threads, num_threads.10_46
+# test.c:54: 	for(int i = 0; i < num_threads ; i++){
+	cmpl	%eax, -20(%rbp)	# num_threads.10_46, i
+	jl	.L12	#,
+# test.c:58: 	free(a);
+	movq	a(%rip), %rax	# a, a.11_47
+	movq	%rax, %rdi	# a.11_47,
 	call	free@PLT	#
-# test.c:53: 	free(b);
-	movq	b(%rip), %rax	# b, b.5_26
-	movq	%rax, %rdi	# b.5_26,
+# test.c:59: 	free(b);
+	movq	b(%rip), %rax	# b, b.12_48
+	movq	%rax, %rdi	# b.12_48,
 	call	free@PLT	#
-# test.c:54: 	free(c);
-	movq	c(%rip), %rax	# c, c.6_27
-	movq	%rax, %rdi	# c.6_27,
+# test.c:60: 	free(c);
+	movq	c(%rip), %rax	# c, c.13_49
+	movq	%rax, %rdi	# c.13_49,
 	call	free@PLT	#
-# test.c:57: 	return 0;
-	movl	$0, %eax	#, _51
-# test.c:58: }
-	movq	-8(%rbp), %rsi	# D.3391, tmp144
-	subq	%fs:40, %rsi	# MEM[(<address-space-1> long unsigned int *)40B], tmp144
-	je	.L13	#,
-	call	__stack_chk_fail@PLT	#
-.L13:
+# test.c:63: 	return 0;
+	movl	$0, %eax	#, _81
+# test.c:64: }
 	leave	
 	.cfi_def_cfa 7, 8
 	ret	

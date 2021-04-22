@@ -107,16 +107,23 @@ static VOID SimulateMemOp
 (
 		VOID * addr, 
 		UINT32 size, 
-		THREADID tid
+		THREADID thread_id 
 )
 {
-	// Get Page
+	// For now the size of memOps is ignored as it is assumed that the whole 
+	// memory access is on one page
+	// TODO: Decide if this is a smart decision
 	
+
+
+	// Get Page
+	if(thread_id == 0)
+		return;
+
+	int tid = thread_id - 1;
 	ndp_tls * tls = &threads_data[tid]; 
 	uint64_t page = ((uint64_t) addr) >> page_offset;
-	PIN_RWMutexReadLock(&mem_block_lock);
 	int r = d_mem->acc_page(page, tls->mem_id);
-	PIN_RWMutexUnlock(&mem_block_lock);
 	if(r !=  ACC_PAGE_NOT_HEAP)
 	{
 		if(tls->tlb->tlb_access(page) == TLB_HIT){
@@ -137,8 +144,11 @@ static VOID SimulateMemOp
 
 
 
-static VOID ThreadStart(THREADID tid , CONTEXT *ctxt, INT32 flags, VOID * v)
+static VOID ThreadStart(THREADID thread_id , CONTEXT *ctxt, INT32 flags, VOID * v)
 {
+	int tid = thread_id - 1;
+	if(tid == -1)
+		return;
 	threads_data[tid].tlb  = new TLB(ndp_tlb_entries);
 	// Calculate mem id
 	int num_mems = knob_num_mems.Value();
@@ -152,8 +162,9 @@ static VOID ThreadStart(THREADID tid , CONTEXT *ctxt, INT32 flags, VOID * v)
 }
 
 
-static VOID ThreadFini(THREADID tid, const CONTEXT *ctxt, INT32 flags, VOID * v)
+static VOID ThreadFini(THREADID thread_id, const CONTEXT *ctxt, INT32 flags, VOID * v)
 {
+	int tid = thread_id - 1;
 
 	ndp_tls * tls = &threads_data[tid]; 
 	delete tls->tlb;
@@ -173,24 +184,19 @@ static VOID Instruction(INS ins, VOID * v)
 	}
 }
 
-//static VOID PIN_START_STOP(ADDRINT val)
-//{
-//	if(val){
-//		PIN_ENABLE = 1;
-//	}
-//	else{
-//		PIN_ENABLE = 0;
-//	}
-//}
 
 
 static VOID MallocBefore(ADDRINT size, THREADID tid)
 {
+	if(tid != 0)
+		return;
 	threads_data[tid]._malloc_size = (uint64_t) size;
 }
 
 static VOID MallocAfter( ADDRINT ret, THREADID tid)
 {
+	if(tid != 0)
+		return;
 	// add mem block !!
 	uint64_t addr = (uint64_t) ret;
 	uint64_t size = threads_data[tid]._malloc_size;
@@ -201,9 +207,7 @@ static VOID MallocAfter( ADDRINT ret, THREADID tid)
 	printf("addr: %lu ;size: %lu \n",addr,size);
 	printf("start: %lu ;stop: %lu \n",start,stop);
 #endif
-	PIN_RWMutexWriteLock(&mem_block_lock);
 	d_mem->add_memblock(start,stop);
-	PIN_RWMutexUnlock(&mem_block_lock);
 
 }
 
@@ -232,14 +236,6 @@ static VOID IMAGE(IMG img, VOID *v)
 		RTN_Close(mallocRtn);
 	}
 	
-	//RTN ssRTN = RTN_FindByName(img, NDP_START_STOP_FUNCTION);
-	//if(RTN_Valid(ssRTN)){
-	//	RTN_Open(ssRTN);
-	//	RTN_InsertCall(ssRTN, IPOINT_BEFORE, (AFUNPTR) PIN_START_STOP,
-	//			IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
-	//			IARG_END);
-	//	RTN_Close(ssRTN);
-	//}
 
 #ifdef DEBUG_NDP
 	for( SEC sec= IMG_SecHead(img); SEC_Valid(sec); sec = SEC_Next(sec) ){
