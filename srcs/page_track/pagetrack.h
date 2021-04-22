@@ -5,7 +5,7 @@
 
 // Return values for access_page
 #define ACC_PAGE_NOT_HEAP 	(0b00)
-#define ACC_PAGE_SUCC_LOCAL 	(0b01)
+#define ACC_PAGE_SUCC_LOCAL 	1
 #define ACC_PAGE_SUCC_NOT_LOCAL	(0b10) 
 
 

@@ -16,7 +16,7 @@ TLB::~TLB(){
 	delete entries;
 }
 
-int TLB::tlb_access(uint64_t page_addr){
+uint32_t TLB::tlb_access(uint64_t page_addr){
 	// Shift the address by the size of the page
 	// Get index 
 	uint64_t index = page_addr & (index_bits);

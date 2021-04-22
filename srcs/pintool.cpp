@@ -124,11 +124,11 @@ static VOID SimulateMemOp
 	uint32_t r = d_mem->acc_page(page, tls->mem_id);
 	if(r)
 	{
-		int tlb_r = tls->tlb->tlb_access(page); 
+		uint32_t tlb_r = tls->tlb->tlb_access(page); 
 		tls->tlb_hits += tlb_r & (0b1);
-		tls->tlb_misses += tlb_r & (0b10);
+		tls->tlb_misses += (tlb_r >> 1);
 		tls->pt_hits += r & (0b1);
-		tls->pt_misses += r & (0b10);
+		tls->pt_misses += (r  >> 1);
 	}
 }
 
@@ -155,6 +155,9 @@ static VOID ThreadStart(THREADID thread_id , CONTEXT *ctxt, INT32 flags, VOID * 
 
 static VOID ThreadFini(THREADID thread_id, const CONTEXT *ctxt, INT32 flags, VOID * v)
 {
+	
+	if(thread_id == 0)
+		return;
 	int tid = thread_id - 1;
 
 	ndp_tls * tls = &threads_data[tid]; 

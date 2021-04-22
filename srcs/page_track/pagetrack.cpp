@@ -95,7 +95,7 @@ uint32_t PT::acc_page(uint64_t p_addr, int8_t mem_id){
 		return ACC_PAGE_SUCC_NOT_LOCAL;
 	}
 	else{
-		int8_t ret = __atomic_exchange_n(page, &ret, __ATOMIC_RELAXED);
+		int8_t ret = __atomic_exchange_n(page, mem_id, __ATOMIC_RELAXED);
 		if(ret == -1){
 			return ACC_PAGE_SUCC_LOCAL;
 		}
@@ -116,7 +116,7 @@ int PT::add_memblock(uint64_t p_start, uint64_t p_stop){
 	lock_check--;
 	return 0;
 }
-int PT::acc_page(uint64_t p_addr, int8_t mem_id){
+uint32_t PT::acc_page(uint64_t p_addr, int8_t mem_id){
 	if((p_addr < low_addr) || (p_addr > high_addr)){
 		return ACC_PAGE_NOT_HEAP;
 	}
