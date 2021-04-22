@@ -35,8 +35,6 @@ static uint64_t log_2_uint64_t(uint64_t a){
 static int page_offset;
 
 
-// Use a lock for access to allocate mem pages
-PIN_RWMUTEX mem_block_lock;
 
 
 // Use a start and stop function to track memory accesses 
@@ -123,21 +121,14 @@ static VOID SimulateMemOp
 	int tid = thread_id - 1;
 	ndp_tls * tls = &threads_data[tid]; 
 	uint64_t page = ((uint64_t) addr) >> page_offset;
-	int r = d_mem->acc_page(page, tls->mem_id);
-	if(r !=  ACC_PAGE_NOT_HEAP)
+	uint32_t r = d_mem->acc_page(page, tls->mem_id);
+	if(r)
 	{
-		if(tls->tlb->tlb_access(page) == TLB_HIT){
-			tls->tlb_hits++;
-		}
-		else{
-			tls->tlb_misses++;
-		}
-		if(r == ACC_PAGE_SUCC_LOCAL){
-			tls->pt_hits++;
-		}
-		else{
-			tls->pt_misses++;
-		}
+		int tlb_r = tls->tlb->tlb_access(page); 
+		tls->tlb_hits += tlb_r & (0b1);
+		tls->tlb_misses += tlb_r & (0b10);
+		tls->pt_hits += r & (0b1);
+		tls->pt_misses += r & (0b10);
 	}
 }
 
@@ -254,7 +245,6 @@ INT32 Usage(){
 };
 
 VOID Fini(INT32 code, VOID *v){
-	PIN_RWMutexFini(&mem_block_lock);
 	ndp_tls * tls;
 	for(int i = 0; i < MAX_NUM_THREADS; i++){
 		tls = &threads_data[i];
@@ -292,7 +282,6 @@ int main(int argc, char * argv[])
 	if(PIN_Init(argc,argv)){
 		return Usage();
 	}
-	PIN_RWMutexInit(&mem_block_lock);
 	ndp_page_size = knob_page_size.Value();
 	ndp_tlb_entries = knob_num_tlb.Value();
 	int num_mems = knob_num_mems.Value();

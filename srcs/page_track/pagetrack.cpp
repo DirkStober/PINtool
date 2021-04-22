@@ -81,7 +81,7 @@ int PT::add_memblock(uint64_t p_start, uint64_t p_stop){
 	return 0;
 }
 	
-int PT::acc_page(uint64_t p_addr, int8_t mem_id){
+uint32_t PT::acc_page(uint64_t p_addr, int8_t mem_id){
 	// See if page on heap
 	if((p_addr < low_addr) || (p_addr > high_addr)){
 		return ACC_PAGE_NOT_HEAP;

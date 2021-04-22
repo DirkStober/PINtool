@@ -4,9 +4,9 @@
 #include <iostream>
 
 // Return values for access_page
-#define ACC_PAGE_NOT_HEAP 0
-#define ACC_PAGE_SUCC_LOCAL 1
-#define ACC_PAGE_SUCC_NOT_LOCAL 2
+#define ACC_PAGE_NOT_HEAP 	(0b00)
+#define ACC_PAGE_SUCC_LOCAL 	(0b01)
+#define ACC_PAGE_SUCC_NOT_LOCAL	(0b10) 
 
 
 #define FIRST_TOUCH 0
@@ -19,7 +19,7 @@ class PT {
 	PT( uint64_t num_mem_in);
 	~PT();
 	int add_memblock(uint64_t p_start, uint64_t p_stop);  
-	int acc_page(uint64_t page, int8_t mem_id);
+	uint32_t acc_page(uint64_t page, int8_t mem_id);
 	// If mem access is above this it is assumed to access the stack
 	uint64_t high_addr;
 	uint64_t low_addr;
