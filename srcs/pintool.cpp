@@ -12,7 +12,7 @@
 #include "pin.H"
 
 
-//#define DEBUG_INFO 0
+#define DEBUG_INFO 0
 
 
 // Inlcude both tlb and pagetrack

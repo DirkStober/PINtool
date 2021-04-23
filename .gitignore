@@ -47,6 +47,7 @@ bu_*/
 
 # Ignore graph files
 *.tsv
+*.dot
 
 #vscode
 .vscode/

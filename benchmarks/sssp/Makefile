@@ -1,5 +1,5 @@
 
-TRGS = sssp sssp_outer sssp_outer_atomic
+TRGS = sssp
 
 LIBS += -lpthread -lrt
 
@@ -7,17 +7,15 @@ LIBS += -lpthread -lrt
 
 ##BOOST_FLAGS = -I$(BOOST_PATH)/include -L$(BOOST_PATH)/lib -lboost_graph
 
-CXXFLAGS = -g --std=c++0x -O3
+CXXFLAGS = --std=c++0x -O3
 CXXFLAGS += -Wall -Werror
 
 all: $(TRGS)
 
-sssp: sssp.cc
-sssp_outer: sssp_outer.cc
-sssp_outer_atomic: sssp_outer_atomic.cc
+sssp: sssp_outer_atomic.cc
+	$(CXX) $(CXXFLAGS) $< -o $@ $(LIBS)
 
 clean:
 	rm -f $(TRGS) *.o *.dot
+	rm -f myfile.txt
 
-%: %.cc ;
-	$(CXX) $(CXXFLAGS) $< -o $@ $(LIBS)

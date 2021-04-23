@@ -8,7 +8,7 @@ CXXFLAGS += -Wall
 
 all: $(TRGS)
 
-bfs: bfs_atomic.cc
+bfs: bfs.cc
 	$(CXX) $(CXXFLAGS) $< -o $@ $(LIBS)
 
 clean:

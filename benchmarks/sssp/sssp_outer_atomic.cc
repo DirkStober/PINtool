@@ -10,7 +10,7 @@
 //#include "carbon_user.h"    /*For the Graphite Simulator*/
 #include <time.h>
 #include <sys/timeb.h>
-#include "../../common/barrier.h"
+#include "../CRONO/common/barrier.h"
 
 #define MAX            100000000
 #define INT_MAX        100000000
@@ -87,9 +87,7 @@ void* do_work(void* args)
    start =  start_d;//tid    *  (largest+1) / (P);
    stop =  stop_d;//(tid+1) *  (largest+1) / (P); 
    
-   //printf("\n %d %d %d",tid,start,stop);
 
-   //pthread_barrier_wait(arg->barrier);
    barrier_wait();
 
    while(terminate==0)
@@ -100,7 +98,6 @@ void* do_work(void* args)
            D[v] = D_temp[v];
          }
 
-         //pthread_barrier_wait(arg->barrier);
          barrier_wait();
 
          if(tid==0)
@@ -120,17 +117,13 @@ void* do_work(void* args)
                if(neighbor>=N)
                   break;
 
-               //pthread_mutex_lock(&locks[neighbor]);
 
                //relax
                if((D[W_index[v][i]] > (D[v] + W[v][i])))    //relax, update distance
                   D_temp[W_index[v][i]] = D[v] + W[v][i];
-               //printf("\n %d",D_temp[W_index[v][i]]);
-               //pthread_mutex_unlock(&locks[neighbor]);
             }
          }
          
-         //pthread_barrier_wait(arg->barrier);
          barrier_wait();
 
          for(v=start;v<stop;v++)
@@ -141,16 +134,13 @@ void* do_work(void* args)
            }
          }
 
-         //pthread_barrier_wait(arg->barrier);
          barrier_wait();
          cntr_0++; 
    }
-   //printf("\n terminate  %d",tid);
 
    if(tid==0)
      cntr = cntr_0;
 
-   //pthread_barrier_wait(arg->barrier);
    barrier_wait();
 
    return NULL;
@@ -198,10 +188,16 @@ void make_dot_graph(int **W,int **W_index,int *exist,int *D,int N,int DEG,const 
    fclose (of);
 }
 
+int Usage(){
+	printf("No input: ./sssp 0 <Max Input Threads> <N> <DEG>\n");
+	printf("Input file: ./sssp 1 <Max Input Threads> <FileName>\n");
+	return 0;	
+};
+
 int main(int argc, char** argv)
 {
-   if (argc < 3) {
-      printf ("Usage:  %s <thread-count> <input-file>\n",argv[0]);
+   if (argc < 4) {
+	   Usage();
       return 1;
    }
    int N = 0;
@@ -406,16 +402,16 @@ int main(int argc, char** argv)
    //CarbonEnableModels();
 
    //create threads
-   for(int j = 1; j < P; j++) {
+   for(int j = 0; j < P; j++) {
       pthread_create(thread_handle+j,
             NULL,
             do_work,
             (void*)&thread_arg[j]);
    }
-   do_work((void*) &thread_arg[0]);
+   // do nothing
 
    //join threads
-   for(int j = 1; j < P; j++) { //mul = mul*2;
+   for(int j = 0; j < P; j++) { //mul = mul*2;
       pthread_join(thread_handle[j],NULL);
    }
 
