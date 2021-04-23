@@ -48,6 +48,8 @@ bu_*/
 # Ignore graph files
 *.tsv
 
+#vscode
+.vscode/
 
 bfs
 test
