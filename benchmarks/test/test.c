@@ -16,7 +16,6 @@ void * do_work(void * args){
 	for(i = tid ; i < 104; i+=num_threads){
 			c[i] = a[i] + b[i];
 	}
-	printf("hello tid: %d \n",tid);
 	return NULL;
 }
 
@@ -49,6 +48,7 @@ int main(int argc, char * argv[])
 		thread_args[i] = i;
 		pthread_create(&threads[i],NULL,do_work, &thread_args[i]);
 	}
+	printf("HEY");
 	//thread_args[0] = 0;
 	//do_work(&thread_args[0]);
 	for(int i = 0; i < num_threads ; i++){

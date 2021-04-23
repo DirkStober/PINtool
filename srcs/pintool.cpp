@@ -212,9 +212,17 @@ static VOID MallocAfter( ADDRINT ret, THREADID tid)
 **/
 static VOID IMAGE(IMG img, VOID *v)
 {	
+	// On uu machine this image performs extra mem allocations
+	// which dont occur on arch machine.
+	// It is thus excluded 
+	// TODO: Look into this !
+	if(IMG_Name(img) == "/lib64/ld-linux-x86-64.so.2"){
+		return;
+	}
 	RTN mallocRtn = RTN_FindByName(img, MALLOC);
 	if (RTN_Valid(mallocRtn))
 	{
+
 		RTN_Open(mallocRtn);
 		
 		// Instrument malloc() to print the input argument value and the return value.

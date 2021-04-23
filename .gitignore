@@ -47,3 +47,7 @@ bu_*/
 
 # Ignore graph files
 *.tsv
+
+
+bfs
+test

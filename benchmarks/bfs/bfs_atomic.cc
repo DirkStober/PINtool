@@ -9,7 +9,7 @@
 #include <pthread.h>
 #include <time.h>
 #include <sys/timeb.h>
-#include "/home/dirk/ndp_workspace/benchmarks/CRONO/common/barrier.h"
+#include "../CRONO/common/barrier.h"
 
 #define MAX            100000000
 #define INT_MAX        100000000
