@@ -1,51 +1,63 @@
 	.file	"test.c"
-# GNU C11 (Ubuntu 7.5.0-3ubuntu1~18.04) version 7.5.0 (x86_64-linux-gnu)
-#	compiled by GNU C version 7.5.0, GMP version 6.1.2, MPFR version 4.0.1, MPC version 1.1.0, isl version isl-0.19-GMP
+# GNU C17 (GCC) version 10.2.0 (x86_64-pc-linux-gnu)
+#	compiled by GNU C version 10.2.0, GMP version 6.2.1, MPFR version 4.1.0, MPC version 1.2.1, isl version isl-0.21-GMP
 
 # GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072
-# options passed:  -imultiarch x86_64-linux-gnu test.c -mtune=generic
-# -march=x86-64 -auxbase-strip test.s -O0 -fverbose-asm
-# -fstack-protector-strong -Wformat -Wformat-security
+# options passed:  test.c -mtune=generic -march=x86-64
+# -auxbase-strip test.s -O0 -fverbose-asm
 # options enabled:  -fPIC -fPIE -faggressive-loop-optimizations
-# -fasynchronous-unwind-tables -fauto-inc-dec -fchkp-check-incomplete-type
-# -fchkp-check-read -fchkp-check-write -fchkp-instrument-calls
-# -fchkp-narrow-bounds -fchkp-optimize -fchkp-store-bounds
-# -fchkp-use-static-bounds -fchkp-use-static-const-bounds
-# -fchkp-use-wrappers -fcommon -fdelete-null-pointer-checks
-# -fdwarf2-cfi-asm -fearly-inlining -feliminate-unused-debug-types
-# -ffp-int-builtin-inexact -ffunction-cse -fgcse-lm -fgnu-runtime
-# -fgnu-unique -fident -finline-atomics -fira-hoist-pressure
+# -fallocation-dce -fasynchronous-unwind-tables -fauto-inc-dec
+# -fdelete-null-pointer-checks -fdwarf2-cfi-asm -fearly-inlining
+# -feliminate-unused-debug-symbols -feliminate-unused-debug-types
+# -ffp-int-builtin-inexact -ffunction-cse -fgcse-lm -fgnu-unique -fident
+# -finline-atomics -fipa-stack-alignment -fira-hoist-pressure
 # -fira-share-save-slots -fira-share-spill-slots -fivopts
-# -fkeep-static-consts -fleading-underscore -flifetime-dse
-# -flto-odr-type-merging -fmath-errno -fmerge-debug-strings -fpeephole
-# -fplt -fprefetch-loop-arrays -freg-struct-return
-# -fsched-critical-path-heuristic -fsched-dep-count-heuristic
-# -fsched-group-heuristic -fsched-interblock -fsched-last-insn-heuristic
-# -fsched-rank-heuristic -fsched-spec -fsched-spec-insn-heuristic
-# -fsched-stalled-insns-dep -fschedule-fusion -fsemantic-interposition
-# -fshow-column -fshrink-wrap-separate -fsigned-zeros
-# -fsplit-ivs-in-unroller -fssa-backprop -fstack-protector-strong
-# -fstdarg-opt -fstrict-volatile-bitfields -fsync-libcalls -ftrapping-math
-# -ftree-cselim -ftree-forwprop -ftree-loop-if-convert -ftree-loop-im
-# -ftree-loop-ivcanon -ftree-loop-optimize -ftree-parallelize-loops=
-# -ftree-phiprop -ftree-reassoc -ftree-scev-cprop -funit-at-a-time
-# -funwind-tables -fverbose-asm -fzero-initialized-in-bss
-# -m128bit-long-double -m64 -m80387 -malign-stringops
-# -mavx256-split-unaligned-load -mavx256-split-unaligned-store
-# -mfancy-math-387 -mfp-ret-in-387 -mfxsr -mglibc -mieee-fp
-# -mlong-double-80 -mmmx -mno-sse4 -mpush-args -mred-zone -msse -msse2
-# -mstv -mtls-direct-seg-refs -mvzeroupper
+# -fkeep-static-consts -fleading-underscore -flifetime-dse -fmath-errno
+# -fmerge-debug-strings -fpeephole -fplt -fprefetch-loop-arrays
+# -freg-struct-return -fsched-critical-path-heuristic
+# -fsched-dep-count-heuristic -fsched-group-heuristic -fsched-interblock
+# -fsched-last-insn-heuristic -fsched-rank-heuristic -fsched-spec
+# -fsched-spec-insn-heuristic -fsched-stalled-insns-dep -fschedule-fusion
+# -fsemantic-interposition -fshow-column -fshrink-wrap-separate
+# -fsigned-zeros -fsplit-ivs-in-unroller -fssa-backprop
+# -fstack-protector-strong -fstdarg-opt -fstrict-volatile-bitfields
+# -fsync-libcalls -ftrapping-math -ftree-cselim -ftree-forwprop
+# -ftree-loop-if-convert -ftree-loop-im -ftree-loop-ivcanon
+# -ftree-loop-optimize -ftree-parallelize-loops= -ftree-phiprop
+# -ftree-reassoc -ftree-scev-cprop -funit-at-a-time -funwind-tables
+# -fverbose-asm -fzero-initialized-in-bss -m128bit-long-double -m64 -m80387
+# -malign-stringops -mavx256-split-unaligned-load
+# -mavx256-split-unaligned-store -mfancy-math-387 -mfp-ret-in-387 -mfxsr
+# -mglibc -mieee-fp -mlong-double-80 -mmmx -mno-sse4 -mpush-args -mred-zone
+# -msse -msse2 -mstv -mtls-direct-seg-refs -mvzeroupper
 
 	.text
 	.local	num_threads
 	.comm	num_threads,4,4
-	.comm	a,8,8
-	.comm	b,8,8
-	.comm	c,8,8
+	.globl	a
+	.bss
+	.align 8
+	.type	a, @object
+	.size	a, 8
+a:
+	.zero	8
+	.globl	b
+	.align 8
+	.type	b, @object
+	.size	b, 8
+b:
+	.zero	8
+	.globl	c
+	.align 8
+	.type	c, @object
+	.size	c, 8
+c:
+	.zero	8
+	.text
 	.globl	do_work
 	.type	do_work, @function
 do_work:
-.LFB5:
+.LFB6:
 	.cfi_startproc
 	pushq	%rbp	#
 	.cfi_def_cfa_offset 16
@@ -54,33 +66,38 @@ do_work:
 	.cfi_def_cfa_register 6
 	movq	%rdi, -24(%rbp)	# args, args
 # test.c:14: 	int tid = *(int *) args;
-	movq	-24(%rbp), %rax	# args, tmp105
-	movl	(%rax), %eax	# MEM[(int *)args_20(D)], tmp106
-	movl	%eax, -4(%rbp)	# tmp106, tid
+	movq	-24(%rbp), %rax	# args, tmp100
+	movl	(%rax), %eax	# MEM[(int *)args_20(D)], tmp101
+	movl	%eax, -4(%rbp)	# tmp101, tid
 # test.c:16: 	for(i = tid ; i < 104; i+=num_threads){
-	movl	-4(%rbp), %eax	# tid, tmp107
-	movl	%eax, -8(%rbp)	# tmp107, i
+	movl	-4(%rbp), %eax	# tid, tmp102
+	movl	%eax, -8(%rbp)	# tmp102, i
+# test.c:16: 	for(i = tid ; i < 104; i+=num_threads){
 	jmp	.L2	#
 .L3:
 # test.c:17: 			c[i] = a[i] + b[i];
-	movq	a(%rip), %rax	# a, a.0_1
-	movl	-8(%rbp), %edx	# i, tmp108
-	movslq	%edx, %rdx	# tmp108, _2
-	salq	$2, %rdx	#, _3
-	addq	%rdx, %rax	# _3, _4
+	movq	a(%rip), %rdx	# a, a.0_1
+	movl	-8(%rbp), %eax	# i, tmp103
+	cltq
+	salq	$2, %rax	#, _3
+	addq	%rdx, %rax	# a.0_1, _4
 	movss	(%rax), %xmm1	# *_4, _5
-	movq	b(%rip), %rax	# b, b.1_6
-	movl	-8(%rbp), %edx	# i, tmp109
-	movslq	%edx, %rdx	# tmp109, _7
-	salq	$2, %rdx	#, _8
-	addq	%rdx, %rax	# _8, _9
+# test.c:17: 			c[i] = a[i] + b[i];
+	movq	b(%rip), %rdx	# b, b.1_6
+	movl	-8(%rbp), %eax	# i, tmp104
+	cltq
+	salq	$2, %rax	#, _8
+	addq	%rdx, %rax	# b.1_6, _9
 	movss	(%rax), %xmm0	# *_9, _10
-	movq	c(%rip), %rax	# c, c.2_11
-	movl	-8(%rbp), %edx	# i, tmp110
-	movslq	%edx, %rdx	# tmp110, _12
-	salq	$2, %rdx	#, _13
-	addq	%rdx, %rax	# _13, _14
+# test.c:17: 			c[i] = a[i] + b[i];
+	movq	c(%rip), %rdx	# c, c.2_11
+	movl	-8(%rbp), %eax	# i, tmp105
+	cltq
+	salq	$2, %rax	#, _13
+	addq	%rdx, %rax	# c.2_11, _14
+# test.c:17: 			c[i] = a[i] + b[i];
 	addss	%xmm1, %xmm0	# _5, _15
+# test.c:17: 			c[i] = a[i] + b[i];
 	movss	%xmm0, (%rax)	# _15, *_14
 # test.c:16: 	for(i = tid ; i < 104; i+=num_threads){
 	movl	num_threads(%rip), %eax	# num_threads, num_threads.3_16
@@ -94,20 +111,18 @@ do_work:
 # test.c:20: }
 	popq	%rbp	#
 	.cfi_def_cfa 7, 8
-	ret
+	ret	
 	.cfi_endproc
-.LFE5:
+.LFE6:
 	.size	do_work, .-do_work
 	.section	.rodata
 .LC0:
 	.string	"#threads: %d\n"
-.LC1:
-	.string	"HEY"
 	.text
 	.globl	main
 	.type	main, @function
 main:
-.LFB6:
+.LFB7:
 	.cfi_startproc
 	pushq	%rbp	#
 	.cfi_def_cfa_offset 16
@@ -123,11 +138,13 @@ main:
 	cmpl	$1, -36(%rbp)	#, argc
 	jle	.L6	#,
 # test.c:30: 		num_threads = atoi(argv[1]);
-	movq	-48(%rbp), %rax	# argv, tmp138
+	movq	-48(%rbp), %rax	# argv, tmp133
 	addq	$8, %rax	#, _1
+# test.c:30: 		num_threads = atoi(argv[1]);
 	movq	(%rax), %rax	# *_1, _2
 	movq	%rax, %rdi	# _2,
 	call	atoi@PLT	#
+# test.c:30: 		num_threads = atoi(argv[1]);
 	movl	%eax, num_threads(%rip)	# _3, num_threads
 .L6:
 # test.c:33: 	printf("#threads: %d\n" , num_threads);
@@ -139,67 +156,78 @@ main:
 # test.c:34: 	a = (float * ) malloc(500*sizeof(float));
 	movl	$2000, %edi	#,
 	call	malloc@PLT	#
+# test.c:34: 	a = (float * ) malloc(500*sizeof(float));
 	movq	%rax, a(%rip)	# _5, a
 # test.c:35: 	b = (float * ) malloc(500*sizeof(float));
 	movl	$2000, %edi	#,
 	call	malloc@PLT	#
+# test.c:35: 	b = (float * ) malloc(500*sizeof(float));
 	movq	%rax, b(%rip)	# _6, b
 # test.c:36: 	c = (float * ) malloc(1000*sizeof(float));
 	movl	$4000, %edi	#,
 	call	malloc@PLT	#
+# test.c:36: 	c = (float * ) malloc(1000*sizeof(float));
 	movq	%rax, c(%rip)	# _7, c
 # test.c:39: 	srand(time(NULL));
 	movl	$0, %edi	#,
 	call	time@PLT	#
+# test.c:39: 	srand(time(NULL));
 	movl	%eax, %edi	# _9,
 	call	srand@PLT	#
 # test.c:40: 	for(i = 0; i < 500; i++)
 	movl	$0, -28(%rbp)	#, i
+# test.c:40: 	for(i = 0; i < 500; i++)
 	jmp	.L7	#
 .L8:
 # test.c:42: 		a[i] = rand() % 100 -50; 
 	call	rand@PLT	#
-	movl	%eax, %ecx	#, _10
-	movl	$1374389535, %edx	#, tmp143
-	movl	%ecx, %eax	# _10, tmp166
-	imull	%edx	# tmp143
-	sarl	$5, %edx	#, tmp144
-	movl	%ecx, %eax	# _10, tmp145
-	sarl	$31, %eax	#, tmp145
-	subl	%eax, %edx	# tmp145, tmp144
-	movl	%edx, %eax	# tmp144, _11
-	imull	$100, %eax, %eax	#, _11, tmp146
-	subl	%eax, %ecx	# tmp146, _10
-	movl	%ecx, %eax	# _10, _11
-	leal	-50(%rax), %ecx	#, _12
-	movq	a(%rip), %rax	# a, a.5_13
-	movl	-28(%rbp), %edx	# i, tmp147
-	movslq	%edx, %rdx	# tmp147, _14
-	salq	$2, %rdx	#, _15
-	addq	%rdx, %rax	# _15, _16
-	cvtsi2ss	%ecx, %xmm0	# _12, _17
+# test.c:42: 		a[i] = rand() % 100 -50; 
+	movslq	%eax, %rdx	# _10, tmp137
+	imulq	$1374389535, %rdx, %rdx	#, tmp137, tmp138
+	shrq	$32, %rdx	#, tmp139
+	sarl	$5, %edx	#, tmp140
+	movl	%eax, %ecx	# _10, tmp141
+	sarl	$31, %ecx	#, tmp141
+	subl	%ecx, %edx	# tmp141, _11
+	imull	$100, %edx, %ecx	#, _11, tmp142
+	subl	%ecx, %eax	# tmp142, _10
+	movl	%eax, %edx	# _10, _11
+# test.c:42: 		a[i] = rand() % 100 -50; 
+	leal	-50(%rdx), %ecx	#, _12
+# test.c:42: 		a[i] = rand() % 100 -50; 
+	movq	a(%rip), %rdx	# a, a.5_13
+	movl	-28(%rbp), %eax	# i, tmp143
+	cltq
+	salq	$2, %rax	#, _15
+	addq	%rdx, %rax	# a.5_13, _16
+# test.c:42: 		a[i] = rand() % 100 -50; 
+	pxor	%xmm0, %xmm0	# _17
+	cvtsi2ssl	%ecx, %xmm0	# _12, _17
 	movss	%xmm0, (%rax)	# _17, *_16
 # test.c:43: 		b[i] = rand() % 100 -50; 
 	call	rand@PLT	#
-	movl	%eax, %ecx	#, _18
-	movl	$1374389535, %edx	#, tmp149
-	movl	%ecx, %eax	# _18, tmp167
-	imull	%edx	# tmp149
-	sarl	$5, %edx	#, tmp150
-	movl	%ecx, %eax	# _18, tmp151
-	sarl	$31, %eax	#, tmp151
-	subl	%eax, %edx	# tmp151, tmp150
-	movl	%edx, %eax	# tmp150, _19
-	imull	$100, %eax, %eax	#, _19, tmp152
-	subl	%eax, %ecx	# tmp152, _18
-	movl	%ecx, %eax	# _18, _19
-	leal	-50(%rax), %ecx	#, _20
-	movq	b(%rip), %rax	# b, b.6_21
-	movl	-28(%rbp), %edx	# i, tmp153
-	movslq	%edx, %rdx	# tmp153, _22
-	salq	$2, %rdx	#, _23
-	addq	%rdx, %rax	# _23, _24
-	cvtsi2ss	%ecx, %xmm0	# _20, _25
+# test.c:43: 		b[i] = rand() % 100 -50; 
+	movslq	%eax, %rdx	# _18, tmp144
+	imulq	$1374389535, %rdx, %rdx	#, tmp144, tmp145
+	shrq	$32, %rdx	#, tmp146
+	sarl	$5, %edx	#, tmp147
+	movl	%eax, %ecx	# _18, tmp148
+	sarl	$31, %ecx	#, tmp148
+	subl	%ecx, %edx	# tmp148, _19
+	imull	$100, %edx, %ecx	#, _19, tmp149
+	subl	%ecx, %eax	# tmp149, _18
+	movl	%eax, %edx	# _18, _19
+# test.c:43: 		b[i] = rand() % 100 -50; 
+	leal	-50(%rdx), %ecx	#, _20
+# test.c:43: 		b[i] = rand() % 100 -50; 
+	movq	b(%rip), %rdx	# b, b.6_21
+	movl	-28(%rbp), %eax	# i, tmp150
+	cltq
+	salq	$2, %rax	#, _23
+	addq	%rdx, %rax	# b.6_21, _24
+# test.c:43: 		b[i] = rand() % 100 -50; 
+	pxor	%xmm0, %xmm0	# _25
+	cvtsi2ssl	%ecx, %xmm0	# _20, _25
 	movss	%xmm0, (%rax)	# _25, *_24
 # test.c:40: 	for(i = 0; i < 500; i++)
 	addl	$1, -28(%rbp)	#, i
@@ -213,94 +241,106 @@ main:
 	salq	$2, %rax	#, _28
 	movq	%rax, %rdi	# _28,
 	call	malloc@PLT	#
-	movq	%rax, -16(%rbp)	# tmp154, thread_args
+	movq	%rax, -16(%rbp)	# tmp151, thread_args
 # test.c:46: 	pthread_t * threads = (pthread_t * ) malloc(sizeof(pthread_t)  *  num_threads);
 	movl	num_threads(%rip), %eax	# num_threads, num_threads.8_29
 	cltq
 	salq	$3, %rax	#, _31
 	movq	%rax, %rdi	# _31,
 	call	malloc@PLT	#
-	movq	%rax, -8(%rbp)	# tmp155, threads
-# test.c:47: 	for(int i = 0; i < num_threads ; i++){
-	movl	$0, -24(%rbp)	#, i
+	movq	%rax, -8(%rbp)	# tmp152, threads
+# test.c:47: 	for(int i = 1; i < num_threads ; i++){
+	movl	$1, -24(%rbp)	#, i
+# test.c:47: 	for(int i = 1; i < num_threads ; i++){
 	jmp	.L9	#
 .L10:
 # test.c:48: 		thread_args[i] = i;
-	movl	-24(%rbp), %eax	# i, tmp156
+	movl	-24(%rbp), %eax	# i, tmp153
 	cltq
 	leaq	0(,%rax,4), %rdx	#, _33
-	movq	-16(%rbp), %rax	# thread_args, tmp157
-	addq	%rax, %rdx	# tmp157, _34
-	movl	-24(%rbp), %eax	# i, tmp158
-	movl	%eax, (%rdx)	# tmp158, *_34
+	movq	-16(%rbp), %rax	# thread_args, tmp154
+	addq	%rax, %rdx	# tmp154, _34
+# test.c:48: 		thread_args[i] = i;
+	movl	-24(%rbp), %eax	# i, tmp155
+	movl	%eax, (%rdx)	# tmp155, *_34
 # test.c:49: 		pthread_create(&threads[i],NULL,do_work, &thread_args[i]);
-	movl	-24(%rbp), %eax	# i, tmp159
+	movl	-24(%rbp), %eax	# i, tmp156
 	cltq
 	leaq	0(,%rax,4), %rdx	#, _36
-	movq	-16(%rbp), %rax	# thread_args, tmp160
-	addq	%rax, %rdx	# tmp160, _37
-	movl	-24(%rbp), %eax	# i, tmp161
+# test.c:49: 		pthread_create(&threads[i],NULL,do_work, &thread_args[i]);
+	movq	-16(%rbp), %rax	# thread_args, tmp157
+	addq	%rax, %rdx	# tmp157, _37
+# test.c:49: 		pthread_create(&threads[i],NULL,do_work, &thread_args[i]);
+	movl	-24(%rbp), %eax	# i, tmp158
 	cltq
 	leaq	0(,%rax,8), %rcx	#, _39
-	movq	-8(%rbp), %rax	# threads, tmp162
+# test.c:49: 		pthread_create(&threads[i],NULL,do_work, &thread_args[i]);
+	movq	-8(%rbp), %rax	# threads, tmp159
 	addq	%rcx, %rax	# _39, _40
 	movq	%rdx, %rcx	# _37,
 	leaq	do_work(%rip), %rdx	#,
 	movl	$0, %esi	#,
 	movq	%rax, %rdi	# _40,
 	call	pthread_create@PLT	#
-# test.c:47: 	for(int i = 0; i < num_threads ; i++){
+# test.c:47: 	for(int i = 1; i < num_threads ; i++){
 	addl	$1, -24(%rbp)	#, i
 .L9:
-# test.c:47: 	for(int i = 0; i < num_threads ; i++){
+# test.c:47: 	for(int i = 1; i < num_threads ; i++){
 	movl	num_threads(%rip), %eax	# num_threads, num_threads.9_41
+# test.c:47: 	for(int i = 1; i < num_threads ; i++){
 	cmpl	%eax, -24(%rbp)	# num_threads.9_41, i
 	jl	.L10	#,
-# test.c:51: 	printf("HEY");
-	leaq	.LC1(%rip), %rdi	#,
-	movl	$0, %eax	#,
-	call	printf@PLT	#
-# test.c:54: 	for(int i = 0; i < num_threads ; i++){
-	movl	$0, -20(%rbp)	#, i
+# test.c:51: 	thread_args[0] = 0;
+	movq	-16(%rbp), %rax	# thread_args, tmp160
+	movl	$0, (%rax)	#, *thread_args_73
+# test.c:52: 	do_work(&thread_args[0]);
+	movq	-16(%rbp), %rax	# thread_args, tmp161
+	movq	%rax, %rdi	# tmp161,
+	call	do_work	#
+# test.c:53: 	for(int i = 1; i < num_threads ; i++){
+	movl	$1, -20(%rbp)	#, i
+# test.c:53: 	for(int i = 1; i < num_threads ; i++){
 	jmp	.L11	#
 .L12:
-# test.c:55: 		pthread_join(threads[i],NULL);
-	movl	-20(%rbp), %eax	# i, tmp163
+# test.c:54: 		pthread_join(threads[i],NULL);
+	movl	-20(%rbp), %eax	# i, tmp162
 	cltq
 	leaq	0(,%rax,8), %rdx	#, _43
-	movq	-8(%rbp), %rax	# threads, tmp164
+	movq	-8(%rbp), %rax	# threads, tmp163
 	addq	%rdx, %rax	# _43, _44
+# test.c:54: 		pthread_join(threads[i],NULL);
 	movq	(%rax), %rax	# *_44, _45
 	movl	$0, %esi	#,
 	movq	%rax, %rdi	# _45,
 	call	pthread_join@PLT	#
-# test.c:54: 	for(int i = 0; i < num_threads ; i++){
+# test.c:53: 	for(int i = 1; i < num_threads ; i++){
 	addl	$1, -20(%rbp)	#, i
 .L11:
-# test.c:54: 	for(int i = 0; i < num_threads ; i++){
+# test.c:53: 	for(int i = 1; i < num_threads ; i++){
 	movl	num_threads(%rip), %eax	# num_threads, num_threads.10_46
+# test.c:53: 	for(int i = 1; i < num_threads ; i++){
 	cmpl	%eax, -20(%rbp)	# num_threads.10_46, i
 	jl	.L12	#,
-# test.c:58: 	free(a);
+# test.c:57: 	free(a);
 	movq	a(%rip), %rax	# a, a.11_47
 	movq	%rax, %rdi	# a.11_47,
 	call	free@PLT	#
-# test.c:59: 	free(b);
+# test.c:58: 	free(b);
 	movq	b(%rip), %rax	# b, b.12_48
 	movq	%rax, %rdi	# b.12_48,
 	call	free@PLT	#
-# test.c:60: 	free(c);
+# test.c:59: 	free(c);
 	movq	c(%rip), %rax	# c, c.13_49
 	movq	%rax, %rdi	# c.13_49,
 	call	free@PLT	#
-# test.c:63: 	return 0;
-	movl	$0, %eax	#, _82
-# test.c:64: }
-	leave
+# test.c:62: 	return 0;
+	movl	$0, %eax	#, _83
+# test.c:63: }
+	leave	
 	.cfi_def_cfa 7, 8
-	ret
+	ret	
 	.cfi_endproc
-.LFE6:
+.LFE7:
 	.size	main, .-main
-	.ident	"GCC: (Ubuntu 7.5.0-3ubuntu1~18.04) 7.5.0"
+	.ident	"GCC: (GNU) 10.2.0"
 	.section	.note.GNU-stack,"",@progbits

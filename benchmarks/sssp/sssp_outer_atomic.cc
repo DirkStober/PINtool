@@ -402,16 +402,16 @@ int main(int argc, char** argv)
    //CarbonEnableModels();
 
    //create threads
-   for(int j = 0; j < P; j++) {
+   for(int j = 1; j < P; j++) {
       pthread_create(thread_handle+j,
             NULL,
             do_work,
             (void*)&thread_arg[j]);
    }
-   // do nothing
+   do_work((void *) &thread_arg[0]);
 
    //join threads
-   for(int j = 0; j < P; j++) { //mul = mul*2;
+   for(int j = 1; j < P; j++) { //mul = mul*2;
       pthread_join(thread_handle[j],NULL);
    }
 

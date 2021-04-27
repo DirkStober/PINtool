@@ -10,9 +10,9 @@
 #include <iostream>
 #include <fstream>
 #include "pin.H"
+#include "filter_custom.H"
 
-
-#define DEBUG_INFO 0
+//#define DEBUG_INFO 0
 
 
 // Inlcude both tlb and pagetrack
@@ -23,6 +23,8 @@
 #define MALLOC "malloc"
 #define FREE "free"
 
+using namespace NDP_FILTER;
+FILTER filter;
 
 static uint64_t log_2_uint64_t(uint64_t a){
 	uint64_t result = 0;
@@ -36,9 +38,6 @@ static int page_offset;
 
 
 
-
-// Use a start and stop function to track memory accesses 
-#define NDP_START_STOP_FUNCTION "_NDP_PIN_START_STOP_"
 
 
 using std::cout;
@@ -105,7 +104,7 @@ static VOID SimulateMemOp
 (
 		VOID * addr, 
 		UINT32 size, 
-		THREADID thread_id 
+		THREADID tid
 )
 {
 	// For now the size of memOps is ignored as it is assumed that the whole 
@@ -115,10 +114,7 @@ static VOID SimulateMemOp
 
 
 	// Get Page
-	if(thread_id == 0)
-		return;
 
-	int tid = thread_id - 1;
 	ndp_tls * tls = &threads_data[tid]; 
 	uint64_t page = ((uint64_t) addr) >> page_offset;
 	uint32_t r = d_mem->acc_page(page, tls->mem_id);
@@ -135,12 +131,9 @@ static VOID SimulateMemOp
 
 
 
-static VOID ThreadStart(THREADID thread_id , CONTEXT *ctxt, INT32 flags, VOID * v)
+static VOID ThreadStart(THREADID tid, CONTEXT *ctxt, INT32 flags, VOID * v)
 {
-	int tid = thread_id - 1;
-	if(tid == -1)
-		return;
-	threads_data[tid].tlb  = new TLB(ndp_tlb_entries);
+	printf("Thread %d started!\n",tid);
 	// Calculate mem id
 	int num_mems = knob_num_mems.Value();
 	int tpm = knob_num_threads.Value();
@@ -149,33 +142,39 @@ static VOID ThreadStart(THREADID thread_id , CONTEXT *ctxt, INT32 flags, VOID * 
 		std::cerr << "Invalid values for num mems or threads per mem mod!\n";
 	}
 	threads_data[tid].mem_id = mem_id;
-	//printf("Start: %d | %d \n", threads_data[tid].pt_hits,threads_data[tid].tlb_hits);	
 }
 
 
-static VOID ThreadFini(THREADID thread_id, const CONTEXT *ctxt, INT32 flags, VOID * v)
+static VOID ThreadFini(THREADID tid, const CONTEXT *ctxt, INT32 flags, VOID * v)
 {
-	
-	if(thread_id == 0)
-		return;
-	int tid = thread_id - 1;
-
-	ndp_tls * tls = &threads_data[tid]; 
-	delete tls->tlb;
+	printf("Thread %d finished!\n",tid);	
 }
 
-static VOID Instruction(INS ins, VOID * v)
+
+
+
+static VOID Trace(TRACE trace, VOID * val)
 {
-	UINT32 memOperands = INS_MemoryOperandCount(ins);
-	for(UINT32 memOp =0; memOp < memOperands; memOp++){
-		UINT32 size = INS_MemoryOperandSize(ins,memOp);
-		INS_InsertCall(ins, IPOINT_BEFORE, 
-			(AFUNPTR) SimulateMemOp,
-			IARG_MEMORYOP_EA, memOp,
-			IARG_UINT32, size,
-			IARG_THREAD_ID,
-			IARG_END);
-	}
+    if (!filter.SelectTrace(trace))
+        return;
+
+    for (BBL bbl = TRACE_BblHead(trace); BBL_Valid(bbl); bbl = BBL_Next(bbl))
+    {
+        for (INS ins = BBL_InsHead(bbl); INS_Valid(ins); ins = INS_Next(ins))
+        {
+		UINT32 memOperands = INS_MemoryOperandCount(ins);
+		for(UINT32 memOp =0; memOp < memOperands; memOp++){
+			UINT32 size = INS_MemoryOperandSize(ins,memOp);
+			INS_InsertCall(ins, IPOINT_BEFORE, 
+				(AFUNPTR) SimulateMemOp,
+				IARG_MEMORYOP_EA, memOp,
+				IARG_UINT32, size,
+				IARG_THREAD_ID,
+				IARG_END);
+		}
+
+        }
+    }
 }
 
 
@@ -256,18 +255,17 @@ INT32 Usage(){
 };
 
 VOID Fini(INT32 code, VOID *v){
+	int nm = knob_num_mems.Value();
+	int tpm = knob_num_threads.Value();
 	ndp_tls * tls;
-	for(int i = 0; i < MAX_NUM_THREADS; i++){
+	for(int i = 0; i < nm*tpm; i++){
 		tls = &threads_data[i];
-		if((tls->tlb_hits == 0) && (tls->tlb_misses == 0)){
-			break;
-		}
 		cout << "TID: " << i << endl;
 		cout << "TLB Hits: " << tls->tlb_hits << endl;
 		cout << "TLB Misses: " << tls->tlb_misses << endl;
 		cout << "pt Hits: " << tls->pt_hits << endl;
 		cout << "pt Misses: " << tls->pt_misses << endl;
-
+		delete tls->tlb;
 	}
 	delete d_mem;
 }
@@ -281,10 +279,23 @@ int print_info(int nm){
 	printf("# Threads/Memory Cube	: %d\n", knob_num_threads.Value());
 	printf("Page size		: %d\n", ndp_page_size);
 	printf("TLB entries		: %d\n", ndp_tlb_entries);
-	//printf("TLB assoziativity	: %d:, ?);
 	printf("----------------------------\n");
 	return 0;
 }
+
+
+int init_tls(int nm , int tpm)
+{
+	for(int i = 0; i < nm * tpm; i++){
+		threads_data[i].tlb = new TLB(ndp_tlb_entries);
+		threads_data[i].mem_id = (i/tpm);
+	}
+	return 0;
+}
+	
+
+	
+
 
 int main(int argc, char * argv[])
 {
@@ -297,12 +308,14 @@ int main(int argc, char * argv[])
 	ndp_tlb_entries = knob_num_tlb.Value();
 	int num_mems = knob_num_mems.Value();
 	print_info(num_mems);
+	init_tls(num_mems,knob_num_threads.Value());
 	// Allocate new pagetrack
 	d_mem = new NDP::PT(num_mems);
 	page_offset = log_2_uint64_t(ndp_page_size);
 
-	INS_AddInstrumentFunction(Instruction,0);
+	TRACE_AddInstrumentFunction(Trace,0);
 	IMG_AddInstrumentFunction(IMAGE,0);
+	filter.Activate();
 	
 	PIN_AddThreadStartFunction(ThreadStart, 0);
 	PIN_AddThreadFiniFunction(ThreadFini,0);

@@ -44,14 +44,13 @@ int main(int argc, char * argv[])
 	}
 	int * thread_args = (int *) malloc(sizeof(int) * num_threads);
 	pthread_t * threads = (pthread_t * ) malloc(sizeof(pthread_t)  *  num_threads);
-	for(int i = 0; i < num_threads ; i++){
+	for(int i = 1; i < num_threads ; i++){
 		thread_args[i] = i;
 		pthread_create(&threads[i],NULL,do_work, &thread_args[i]);
 	}
-	printf("HEY");
-	//thread_args[0] = 0;
-	//do_work(&thread_args[0]);
-	for(int i = 0; i < num_threads ; i++){
+	thread_args[0] = 0;
+	do_work(&thread_args[0]);
+	for(int i = 1; i < num_threads ; i++){
 		pthread_join(threads[i],NULL);
 	}
 	
