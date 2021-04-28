@@ -1,0 +1,20 @@
+#!/bin/sh
+PIN_ROOT=PIN/pin-3.17-98314-g0c048d619-gcc-linux
+HPCG_BIN=benchmarks/hpcg-3.1/NDP/bin
+PINTOOL=obj/obj-intel64/pintool.so
+#HELP
+P_SIZE="2048"
+T_SIZE="64"
+NUM_M=1
+NUM_T=2
+TF="ComputeDotProduct"
+export OMP_NUM_THREADS=$((NUM_M * NUM_T))
+echo "Num Threads: ${OMP_NUM_THREADS}"
+FILTER_RTN=""
+#FILTER_RTN=${FILTER_RTN// / -filter_rtn } 
+FILTER_SL="-filter_no_shared_libs"
+PIN_FLAGS="-p ${P_SIZE} -tn ${T_SIZE} -nm ${NUM_M} -nt ${NUM_T}  ${FILTER_SL} -tf ${TF}"
+echo  ${PIN_ROOT}/pin -t ${PINTOOL} ${PIN_FLAGS} -- ${HPCG_BIN}/xhpcg "$@"
+${PIN_ROOT}/pin -t ${PINTOOL} ${PIN_FLAGS} -- ${HPCG_BIN}/xhpcg "$@"
+
+

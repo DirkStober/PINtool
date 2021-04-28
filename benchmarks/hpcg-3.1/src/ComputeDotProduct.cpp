@@ -38,10 +38,30 @@
 
   @see ComputeDotProduct_ref
 */
-int ComputeDotProduct(const local_int_t n, const Vector & x, const Vector & y,
+int __attribute__((noinline)) ComputeDotProduct(const local_int_t n, const Vector & x, const Vector & y,
     double & result, double & time_allreduce, bool & isOptimized) {
 
-  // This line and the next two lines should be removed and your version of ComputeDotProduct should be used.
-  isOptimized = false;
-  return ComputeDotProduct_ref(n, x, y, result, time_allreduce);
+	isOptimized = false;
+  assert(x.localLength>=n); // Test vector lengths
+  assert(y.localLength>=n);
+
+  double local_result = 0.0;
+  double * xv = x.values;
+  double * yv = y.values;
+  if (yv==xv) {
+#ifndef HPCG_NO_OPENMP
+    #pragma omp parallel for reduction (+:local_result)
+#endif
+    for (local_int_t i=0; i<n; i++) local_result += xv[i]*xv[i];
+  } else {
+#ifndef HPCG_NO_OPENMP
+    #pragma omp parallel for reduction (+:local_result)
+#endif
+    for (local_int_t i=0; i<n; i++) local_result += xv[i]*yv[i];
+  }
+
+  time_allreduce += 0.0;
+  result = local_result;
+  return 0;
+
 }

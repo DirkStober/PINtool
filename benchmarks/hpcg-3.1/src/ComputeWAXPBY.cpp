@@ -19,30 +19,40 @@
  */
 
 #include "ComputeWAXPBY.hpp"
-#include "ComputeWAXPBY_ref.hpp"
+#include "omp.h"
 
-/*!
-  Routine to compute the update of a vector with the sum of two
-  scaled vectors where: w = alpha*x + beta*y
+#include <cstdio>
+int __attribute__((noinline)) test123(const Vector &y,Vector &w,const Vector &x){
+	double * wv = w.values;
+	for(int i = 0; i < 4; i++){
+		wv[i] = i;
+	}
 
-  This routine calls the reference WAXPBY implementation by default, but
-  can be replaced by a custom, optimized routine suited for
-  the target system.
 
-  @param[in] n the number of vector elements (on this processor)
-  @param[in] alpha, beta the scalars applied to x and y respectively.
-  @param[in] x, y the input vectors
-  @param[out] w the output vector
-  @param[out] isOptimized should be set to false if this routine uses the reference implementation (is not optimized); otherwise leave it unchanged
+	return 0;
+}
 
-  @return returns 0 upon success and non-zero otherwise
 
-  @see ComputeWAXPBY_ref
-*/
-int ComputeWAXPBY(const local_int_t n, const double alpha, const Vector & x,
+int __attribute__((noinline)) ComputeWAXPBY(const local_int_t n, const double alpha, const Vector & x,
     const double beta, const Vector & y, Vector & w, bool & isOptimized) {
 
   // This line and the next two lines should be removed and your version of ComputeWAXPBY should be used.
   isOptimized = false;
-  return ComputeWAXPBY_ref(n, alpha, x, beta, y, w);
+  //test123(y,w,x);
+  assert(x.localLength>=n); // Test vector lengths
+  assert(y.localLength>=n);
+
+  const double * const xv = x.values;
+  const double * const yv = y.values;
+  double * const wv = w.values;
+  
+
+  #pragma omp parallel
+  {
+#pragma omp for
+  	for (local_int_t i=0; i<n; i++){
+		wv[i] = alpha * xv[i] + beta * yv[i];
+  	}
+  }
+  return 0;
 }

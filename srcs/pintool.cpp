@@ -10,21 +10,21 @@
 #include <iostream>
 #include <fstream>
 #include "pin.H"
-#include "filter_custom.H"
 
 //#define DEBUG_INFO 0
-
+//#define DEBUG_NDP 1
 
 // Inlcude both tlb and pagetrack
 #include "tlb.h"
 #include "pagetrack.h"
+#include "filter_custom.H"
 
 // Define Malloc and free
 #define MALLOC "malloc"
 #define FREE "free"
 
-using namespace NDP_FILTER;
-FILTER filter;
+
+static int tracking_active;
 
 static uint64_t log_2_uint64_t(uint64_t a){
 	uint64_t result = 0;
@@ -38,6 +38,8 @@ static int page_offset;
 
 
 
+using namespace NDP_FILTER;
+FILTER filter;
 
 
 using std::cout;
@@ -61,6 +63,10 @@ KNOB<UINT32> knob_num_threads(KNOB_MODE_WRITEONCE, "pintool",
 KNOB<UINT32> knob_num_tlb(KNOB_MODE_WRITEONCE, "pintool",
 		"tn", "32", "Number of Tlb entries");
 static int ndp_tlb_entries;
+
+KNOB<std::string> knob_track_func(KNOB_MODE_WRITEONCE, "pintool",
+		"tf", "NDP_TRACK", "Memory accesses inside this function are tracked");
+
 
 
 //TODO: Implement as inputs
@@ -111,13 +117,18 @@ static VOID SimulateMemOp
 	// memory access is on one page
 	// TODO: Decide if this is a smart decision
 	
+	if(!tracking_active){
+		return;
+	}
 
 
 	// Get Page
 
 	ndp_tls * tls = &threads_data[tid]; 
-	uint64_t page = ((uint64_t) addr) >> page_offset;
+	uint64_t page = ((uint64_t) addr);
+	page = page >> page_offset;
 	uint32_t r = d_mem->acc_page(page, tls->mem_id);
+	//printf("min: %lu | max: %lu | addr: %lu | fa: %lu\n",d_mem->low_addr,d_mem->high_addr,page,(uint64_t) addr);
 	if(r)
 	{
 		uint32_t tlb_r = tls->tlb->tlb_access(page); 
@@ -153,28 +164,32 @@ static VOID ThreadFini(THREADID tid, const CONTEXT *ctxt, INT32 flags, VOID * v)
 
 
 
+
 static VOID Trace(TRACE trace, VOID * val)
 {
-    if (!filter.SelectTrace(trace))
-        return;
+	if(!filter.SelectTrace(trace))
+		return;
 
-    for (BBL bbl = TRACE_BblHead(trace); BBL_Valid(bbl); bbl = BBL_Next(bbl))
-    {
-        for (INS ins = BBL_InsHead(bbl); INS_Valid(ins); ins = INS_Next(ins))
-        {
-		UINT32 memOperands = INS_MemoryOperandCount(ins);
-		for(UINT32 memOp =0; memOp < memOperands; memOp++){
-			UINT32 size = INS_MemoryOperandSize(ins,memOp);
-			INS_InsertCall(ins, IPOINT_BEFORE, 
-				(AFUNPTR) SimulateMemOp,
-				IARG_MEMORYOP_EA, memOp,
-				IARG_UINT32, size,
-				IARG_THREAD_ID,
-				IARG_END);
-		}
 
-        }
-    }
+
+	for (BBL bbl = TRACE_BblHead(trace); BBL_Valid(bbl); bbl = BBL_Next(bbl))
+	{
+    		for (INS ins = BBL_InsHead(bbl); INS_Valid(ins); ins = INS_Next(ins))
+    		{
+    			UINT32 memOperands = INS_MemoryOperandCount(ins);
+    			for(UINT32 memOp =0; memOp < memOperands; memOp++){
+    				UINT32 size = INS_MemoryOperandSize(ins,memOp);
+    				INS_InsertCall(ins, IPOINT_BEFORE, 
+    					(AFUNPTR) SimulateMemOp,
+    					IARG_MEMORYOP_EA, memOp,
+    					IARG_UINT32, size,
+    					IARG_THREAD_ID,
+    					IARG_END);
+    			}
+
+    		}
+    	    
+    	}
 }
 
 
@@ -204,6 +219,28 @@ static VOID MallocAfter( ADDRINT ret, THREADID tid)
 
 }
 
+static VOID TrackBefore(THREADID tid){
+	if(tid != 0){
+		printf("HELLO from  %d\n",tid);
+		return;
+	}
+	tracking_active = 1;
+	return;
+}
+
+
+static VOID TrackAfter(THREADID tid){
+	if(tid != 0){
+		printf("HELLO from  %d\n",tid);
+		return;
+	}
+	tracking_active = 0;
+	return;
+}
+
+
+
+
 /**
  * Checks wether the called routine is MALLOC or free
  * if so adds a memory block to it tracking the pages
@@ -221,7 +258,6 @@ static VOID IMAGE(IMG img, VOID *v)
 	RTN mallocRtn = RTN_FindByName(img, MALLOC);
 	if (RTN_Valid(mallocRtn))
 	{
-
 		RTN_Open(mallocRtn);
 		
 		// Instrument malloc() to print the input argument value and the return value.
@@ -237,14 +273,20 @@ static VOID IMAGE(IMG img, VOID *v)
 		RTN_Close(mallocRtn);
 	}
 	
-
-#ifdef DEBUG_NDP
 	for( SEC sec= IMG_SecHead(img); SEC_Valid(sec); sec = SEC_Next(sec) ){
 		for( RTN rtn= SEC_RtnHead(sec); RTN_Valid(rtn); rtn = RTN_Next(rtn) ){
-			std::cout << RTN_Name(rtn) << std::endl;
+			if(PIN_UndecorateSymbolName(RTN_Name(rtn),UNDECORATION_NAME_ONLY) == knob_track_func.Value()){
+				RTN_Open(rtn);
+				RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)TrackBefore,
+					       IARG_THREAD_ID,
+				               IARG_END);
+				RTN_InsertCall(rtn, IPOINT_AFTER, (AFUNPTR)TrackAfter,
+						IARG_THREAD_ID,
+						IARG_END);
+				RTN_Close(rtn);
+			}
 		}
 	};
-#endif
 
 }
 
@@ -313,9 +355,10 @@ int main(int argc, char * argv[])
 	d_mem = new NDP::PT(num_mems);
 	page_offset = log_2_uint64_t(ndp_page_size);
 
+	filter.Activate();
 	TRACE_AddInstrumentFunction(Trace,0);
 	IMG_AddInstrumentFunction(IMAGE,0);
-	filter.Activate();
+	
 	
 	PIN_AddThreadStartFunction(ThreadStart, 0);
 	PIN_AddThreadFiniFunction(ThreadFini,0);

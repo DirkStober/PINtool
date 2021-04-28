@@ -11,6 +11,8 @@
 
 #ifndef FILTER_C_H
 #define FILTER_C_H
+#include <stdio.h>
+//#define EXCLUDE_OMP
 
 using std::string;
 namespace NDP_FILTER
@@ -70,8 +72,17 @@ class FILTER_RTN
         {
             if (RTN_Name(rtn) == _rtnsKnob.Value(i))
                 return true;
-            if (PIN_UndecorateSymbolName(RTN_Name(rtn),UNDECORATION_NAME_ONLY) == _rtnsKnob.Value(i))
+	    // Get the undecorated Name
+	    string rtn_name = PIN_UndecorateSymbolName(RTN_Name(rtn),UNDECORATION_NAME_ONLY);
+            if (rtn_name == _rtnsKnob.Value(i)){
                 return true;
+	    }
+#ifdef EXCLUDE_OMP
+	    // For openmp compare first four chars
+	    if ((rtn_name.compare(0,4,"gomp") && rtn_name.compare(0,4,"GOMP")) == 0){
+		    return true;
+	    }
+#endif
         }
 
         return false;
