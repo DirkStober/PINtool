@@ -5,6 +5,8 @@ setup_file = setup/Make.$(arch)
 
 include $(setup_file)
 
+CXXFLAGS += -g
+LINKFLAGS += -g
 
 HPCG_DEPS = src/CG.o \
 	    src/CG_ref.o \
@@ -55,10 +57,19 @@ all: bin/xhpcg
 bin/xhpcg: src/main.o $(HPCG_DEPS)
 	$(LINKER) $(LINKFLAGS) src/main.o $(HPCG_DEPS) $(HPCG_LIBS) -o bin/xhpcg
 
+bin/ndgcg: src/ndp.o $(HPCG_DEPS)
+	$(LINKER) $(LINKFLAGS) src/ndp.o $(HPCG_DEPS) $(HPCG_LIBS) -o bin/ndpcg
+
+
 clean:
 	rm -f src/*.o bin/xhpcg
 
 .PHONY: all clean
+
+
+src/ndp.o: ndp_run.cpp $(PRIMARY_HEADERS)
+	$(CXX) -c $(CXXFLAGS) -I../src $< -o src/ndp.o
+
 
 src/main.o: ../src/main.cpp $(PRIMARY_HEADERS)
 	$(CXX) -c $(CXXFLAGS) -I../src $< -o $@

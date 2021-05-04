@@ -7,14 +7,15 @@ P_SIZE="2048"
 T_SIZE="64"
 NUM_M=1
 NUM_T=2
-TF="ComputeDotProduct"
+TF="CG"
 export OMP_NUM_THREADS=$((NUM_M * NUM_T))
 echo "Num Threads: ${OMP_NUM_THREADS}"
 FILTER_RTN=""
 #FILTER_RTN=${FILTER_RTN// / -filter_rtn } 
 FILTER_SL="-filter_no_shared_libs"
 PIN_FLAGS="-p ${P_SIZE} -tn ${T_SIZE} -nm ${NUM_M} -nt ${NUM_T}  ${FILTER_SL} -tf ${TF}"
-echo  ${PIN_ROOT}/pin -t ${PINTOOL} ${PIN_FLAGS} -- ${HPCG_BIN}/xhpcg "$@"
-${PIN_ROOT}/pin -t ${PINTOOL} ${PIN_FLAGS} -- ${HPCG_BIN}/xhpcg "$@"
+CMD="${PIN_ROOT}/pin -t ${PINTOOL} ${PIN_FLAGS} -- ${HPCG_BIN}/ndpcg "$@""
+echo ${CMD}; 
+${CMD}
 
 

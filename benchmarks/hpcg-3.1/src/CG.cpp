@@ -66,9 +66,6 @@ int CG(const SparseMatrix & A, CGData & data, const Vector & b, Vector & x,
 
 
   double t0 = 0.0, t1 = 0.0, t2 = 0.0, t3 = 0.0, t4 = 0.0, t5 = 0.0;
-//#ifndef HPCG_NO_MPI
-//  double t6 = 0.0;
-//#endif
   local_int_t nrow = A.localNumberOfRows;
   Vector & r = data.r; // Residual vector
   Vector & z = data.z; // Preconditioned residual vector
@@ -77,20 +74,12 @@ int CG(const SparseMatrix & A, CGData & data, const Vector & b, Vector & x,
 
   if (!doPreconditioning && A.geom->rank==0) HPCG_fout << "WARNING: PERFORMING UNPRECONDITIONED ITERATIONS" << std::endl;
 
-#ifdef HPCG_DEBUG
-  int print_freq = 1;
-  if (print_freq>50) print_freq=50;
-  if (print_freq<1)  print_freq=1;
-#endif
   // p is of length ncols, copy x to p for sparse MV operation
   CopyVector(x, p);
   TICK(); ComputeSPMV(A, p, Ap); TOCK(t3); // Ap = A*p
   TICK(); ComputeWAXPBY(nrow, 1.0, b, -1.0, Ap, r, A.isWaxpbyOptimized);  TOCK(t2); // r = b - Ax (x stored in p)
   TICK(); ComputeDotProduct(nrow, r, r, normr, t4, A.isDotProductOptimized); TOCK(t1);
   normr = sqrt(normr);
-#ifdef HPCG_DEBUG
-  if (A.geom->rank==0) HPCG_fout << "Initial Residual = "<< normr << std::endl;
-#endif
 
   // Record initial residual for convergence testing
   normr0 = normr;
@@ -122,10 +111,6 @@ int CG(const SparseMatrix & A, CGData & data, const Vector & b, Vector & x,
             ComputeWAXPBY(nrow, 1.0, r, -alpha, Ap, r, A.isWaxpbyOptimized);  TOCK(t2);// r = r - alpha*Ap
     TICK(); ComputeDotProduct(nrow, r, r, normr, t4, A.isDotProductOptimized); TOCK(t1);
     normr = sqrt(normr);
-#ifdef HPCG_DEBUG
-    if (A.geom->rank==0 && (k%print_freq == 0 || k == max_iter))
-      HPCG_fout << "Iteration = "<< k << "   Scaled Residual = "<< normr/normr0 << std::endl;
-#endif
     niters = k;
   }
 
@@ -135,9 +120,6 @@ int CG(const SparseMatrix & A, CGData & data, const Vector & b, Vector & x,
   times[3] += t3; // SPMV time
   times[4] += t4; // AllReduce time
   times[5] += t5; // preconditioner apply time
-//#ifndef HPCG_NO_MPI
-//  times[6] += t6; // exchange halo time
-//#endif
   times[0] += mytimer() - t_begin;  // Total time. All done...
   return 0;
 }

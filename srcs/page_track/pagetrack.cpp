@@ -106,14 +106,10 @@ uint32_t PT::acc_page(uint64_t p_addr, int8_t mem_id){
 }	
 #else
 int PT::add_memblock(uint64_t p_start, uint64_t p_stop){
-	if(lock_check > 0){
-		std::cerr << " Lock failure multiple threads in add memblock ! \n";
-		return -1;
-	}
-	lock_check++;
-	high_addr = (p_stop > high_addr) ? p_stop : high_addr;
-	low_addr = (page_start < low_addr) ? page_start : low_addr;
-	lock_check--;
+	if(p_stop > high_addr)
+		high_addr = p_stop;
+	if(p_start < low_addr)
+		low_addr = p_start;
 	return 0;
 }
 uint32_t PT::acc_page(uint64_t p_addr, int8_t mem_id){
