@@ -26,6 +26,7 @@ TF="main"
 FILTER_RTN="-filter_rtn do_work";
 FILTER_SL="-filter_no_shared_libs"
 PROBLEM_SIZE="200000 20"
+#PROBLEM_SIZE="200 20"
 
 
 echo "Starting BFS run using $1 ..."

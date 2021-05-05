@@ -11,7 +11,7 @@
 #include <fstream>
 #include "pin.H"
 
-#define DEBUG_INFO 0
+//#define DEBUG_INFO 0
 //#define DEBUG_NDP 1
 
 // Inlcude both tlb and pagetrack
@@ -80,12 +80,12 @@ KNOB<std::string> knob_track_func(KNOB_MODE_WRITEONCE, "pintool",
 struct NDP_TLS_struct{
 	TLB * tlb;		// 8 byte
 	int8_t mem_id = 0;	// 1 byte
-	uint32_t tlb_hits = 0;	// 4 byte
-	uint32_t tlb_misses = 0;// 4 byte
-	uint32_t pt_hits = 0;	// 4
-	uint32_t pt_misses = 0;	// 4
+	uint64_t tlb_hits = 0;	// 8 byte
+	uint64_t tlb_misses = 0;// 8 byte
+	uint64_t pt_hits = 0;	// 8
+	uint64_t pt_misses = 0;	// 8
 	uint64_t _malloc_size = 0; // 8
-	uint8_t CL_Pad[CL_SIZE - 33];	
+	uint8_t CL_Pad[CL_SIZE - 49];	
 };
 typedef struct NDP_TLS_struct ndp_tls;
 
@@ -128,11 +128,11 @@ static VOID SimulateMemOp
 	ndp_tls * tls = &threads_data[tid]; 
 	uint64_t page = ((uint64_t) addr);
 	page = page >> page_offset;
-	uint32_t r = d_mem->acc_page(page, tls->mem_id);
+	uint64_t r = d_mem->acc_page(page, tls->mem_id);
 	//printf("min: %lu | max: %lu | addr: %lu | fa: %lu\n",d_mem->low_addr,d_mem->high_addr,page,(uint64_t) addr);
 	if(r)
 	{
-		uint32_t tlb_r = tls->tlb->tlb_access(page); 
+		uint64_t tlb_r = tls->tlb->tlb_access(page); 
 		tls->tlb_hits += tlb_r & (0b1);
 		tls->tlb_misses += (tlb_r >> 1);
 		tls->pt_hits += r & (0b1);
@@ -361,11 +361,11 @@ VOID write_file(){
 		tls = &threads_data[i];
 		fprintf(of,"%3d ",i);
 		double hm_ratio;
-		uint32_t total_ins = tls->tlb_hits + tls->tlb_misses;
-		hm_ratio = (tls->tlb_hits * 1.0)/(total_ins);
-		fprintf(of,"%8u %8u %8lf ",tls->tlb_hits,tls->tlb_misses,hm_ratio);
+		uint64_t total_ins = tls->tlb_hits + tls->tlb_misses;
+		hm_ratio = (tls->tlb_hits * 1.0)/((double) total_ins);
+		fprintf(of,"%lu %lu %lf ",tls->tlb_hits,tls->tlb_misses,hm_ratio);
 		hm_ratio = (tls->pt_hits * 1.0)/(total_ins);
-		fprintf(of,"%8u %8u %8lf",tls->pt_hits,tls->pt_misses,hm_ratio);
+		fprintf(of,"%lu %lu %lf",tls->pt_hits,tls->pt_misses,hm_ratio);
 		fprintf(of,"\n");
 	}
 
