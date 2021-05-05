@@ -54,5 +54,6 @@ bu_*/
 .vscode/
 
 bfs
+!benchmarks/bfs/bfs.cc
 test
 !obj/obj-intel64/dummy
