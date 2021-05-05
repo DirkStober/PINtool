@@ -33,7 +33,8 @@ int main(int argc, char * argv[])
 	printf("#threads: %d\n" , num_threads);
 	a = (float * ) malloc(500*sizeof(float));
 	b = (float * ) malloc(500*sizeof(float));
-	c = (float * ) malloc(1000*sizeof(float));
+	posix_memalign((void **) &c, 64, 1000*sizeof(float));
+	printf("HHH: %lu \n", c);
 
 	int i;
 	srand(time(NULL));

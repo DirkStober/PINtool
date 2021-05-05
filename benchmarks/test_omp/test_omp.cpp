@@ -11,7 +11,6 @@ static int num_threads;
 
 
 __attribute__ ((noinline)) int do_work(float *a){
-	printf("HELLO");
 #pragma omp parallel for
 	for(int i = 0; i < 200; i++)
 	{

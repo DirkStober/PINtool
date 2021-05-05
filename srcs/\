@@ -11,7 +11,7 @@
 #include <fstream>
 #include "pin.H"
 
-#define DEBUG_INFO 0
+//#define DEBUG_INFO 0
 //#define DEBUG_NDP 1
 
 // Inlcude both tlb and pagetrack
@@ -22,7 +22,6 @@
 // Define Malloc and free
 #define MALLOC "malloc"
 #define FREE "free"
-#define MEMALIGN "posix_memalign"
 
 
 static int tracking_active;
@@ -137,16 +136,6 @@ static VOID SimulateMemOp
 		tls->tlb_misses += (tlb_r >> 1);
 		tls->pt_hits += r & (0b1);
 		tls->pt_misses += (r  >> 1);
-//#define DB 1
-#ifdef DB
-		// Is this Problem? : Pages are not initialized at page start
-		uint64_t index = (((uint64_t) addr) & (knob_page_size.Value() -1));
-		if(tid==0){
-			std::cout << "addr: " << addr << " |P: " << page << std::endl;
-			std::cout << "index: " <<  index <<std::endl;
-		}
-	
-#endif
 	}
 }
 
@@ -249,31 +238,6 @@ static VOID TrackAfter(THREADID tid){
 	return;
 }
 
-static void * memal;
-static uint64_t msize;
-static VOID MEMALIGNBefore(THREADID tid, void * ptr, ADDRINT size){
-	if(tid != 0)
-		return;
-	memal = ptr;
-	msize = (uint64_t) size;
-}
-
-
-static VOID MEMALIGNAfter(THREADID tid){
-	if(tid != 0)
-		return;
-	uint64_t addr =*(uint64_t *) memal;
-	uint64_t size = msize;
-	uint64_t start = (addr) >> page_offset;
-	uint64_t stop = (addr + size - 1) >> page_offset;
-#ifdef DEBUG_INFO
-	printf("MEMALIGN TID : %d \n" , tid);
-	printf("addr: %lu ;size: %lu \n",addr,size);
-	printf("start: %lu ;stop: %lu \n",start,stop);
-#endif
-	d_mem->add_memblock(start,stop);
-}
-
 
 
 
@@ -321,18 +285,6 @@ static VOID IMAGE(IMG img, VOID *v)
 						IARG_END);
 				RTN_Close(rtn);
 			}
-			if(PIN_UndecorateSymbolName(RTN_Name(rtn),UNDECORATION_NAME_ONLY) == MEMALIGN){
-				RTN_Open(rtn);
-				RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)MEMALIGNBefore,
-					       IARG_THREAD_ID,
-					       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
-					       IARG_FUNCARG_ENTRYPOINT_VALUE, 2,
-				               IARG_END);
-				RTN_InsertCall(rtn, IPOINT_AFTER, (AFUNPTR)MEMALIGNAfter,
-						IARG_THREAD_ID,
-						IARG_END);
-				RTN_Close(rtn);
-			}
 		}
 	};
 
@@ -346,31 +298,15 @@ INT32 Usage(){
 
 VOID write_file(){
 	FILE * of;
-	of = fopen(knob_output.Value().c_str(),"a");
+	of = fopen(knob_output.Value().c_str(),"w");
 	// Write General Data
-	fprintf(of,"START\n");
-	fprintf(of,"2 META\n");
-	fprintf(of,"#mem #t/mem pagesize #TLBentries\n");
-	fprintf(of,"%d %d %lu %d \n",knob_num_mems.Value(),knob_num_threads.Value(),
-			knob_page_size.Value(),knob_num_tlb.Value());
-	int nt = knob_num_mems.Value() * knob_num_threads.Value();
-	fprintf(of,"%d DATA\n",nt + 1);
-	fprintf(of,"TID TLB_HITS TLB_MISSES TLB_HIT_RATIO PAGE_LOCAL PAGE_NOT_LOCAL PAGE_HIT_RATIO\n");
-	ndp_tls * tls;
-	for(int i = 0; i < nt ; i++){
-		tls = &threads_data[i];
-		fprintf(of,"%3d ",i);
-		double hm_ratio;
-		uint32_t total_ins = tls->tlb_hits + tls->tlb_misses;
-		hm_ratio = (tls->tlb_hits * 1.0)/(total_ins);
-		fprintf(of,"%8u %8u %8lf ",tls->tlb_hits,tls->tlb_misses,hm_ratio);
-		hm_ratio = (tls->pt_hits * 1.0)/(total_ins);
-		fprintf(of,"%8u %8u %8lf",tls->pt_hits,tls->pt_misses,hm_ratio);
-		fprintf(of,"\n");
-	}
+	fprintf(of
 
-	fprintf(of,"END\n");
-	fclose(of);
+
+
+
+
+	fclose(outfile);
 	return;
 };
 
@@ -380,7 +316,6 @@ VOID Fini(INT32 code, VOID *v){
 	int nm = knob_num_mems.Value();
 	int tpm = knob_num_threads.Value();
 	ndp_tls * tls;
-	write_file();
 	for(int i = 0; i < nm*tpm; i++){
 		tls = &threads_data[i];
 		cout << "TID: " << i << endl;
