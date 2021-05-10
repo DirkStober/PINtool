@@ -57,3 +57,10 @@ bfs
 !benchmarks/bfs/bfs.cc
 test
 !obj/obj-intel64/dummy
+
+#some executables to ignore:
+benchmarks/hpcg-3.1/NDP/bin/*
+benchmarks/pagerank/pagerank
+benchmarks/sssp/sssp
+*-run
+*.in
