@@ -7,6 +7,7 @@
 
 
 
+#include "pintool.h"
 #include <iostream>
 #include <fstream>
 #include "pin.H"
@@ -14,8 +15,8 @@
 //#define DEBUG_INFO 0
 //#define DEBUG_NDP 1
 
+
 // Inlcude both tlb and pagetrack
-#include "tlb.h"
 #include "pagetrack.h"
 #include "filter_custom.H"
 
@@ -26,18 +27,6 @@
 
 
 static int tracking_active;
-
-static uint64_t log_2_uint64_t(uint64_t a){
-	uint64_t result = 0;
-	while(a >>= 1){
-		result++;
-	}
-	return result;
-}
-
-static int page_offset;
-
-
 
 using namespace NDP_FILTER;
 FILTER filter;
@@ -52,104 +41,92 @@ KNOB<std::string> knob_output(KNOB_MODE_WRITEONCE,"pintool",
 
 KNOB<UINT64> knob_page_size(KNOB_MODE_WRITEONCE,"pintool",
 		"p", "2048", "Page Size (bytes)");
-static int ndp_page_size;
 	
 
 KNOB<UINT32> knob_num_mems(KNOB_MODE_WRITEONCE, "pintool",
 		"nm", "1", "Number of memory modules threads are equally distributed and should be a multiple of nm");
 
 KNOB<UINT32> knob_num_threads(KNOB_MODE_WRITEONCE, "pintool",
-		"nt", "1", "Number of Threads per memory module");
+		"tpm", "1", "Number of Threads per memory module");
 
 KNOB<UINT32> knob_num_tlb(KNOB_MODE_WRITEONCE, "pintool",
 		"tn", "32", "Number of Tlb entries");
-static int ndp_tlb_entries;
 
 KNOB<std::string> knob_track_func(KNOB_MODE_WRITEONCE, "pintool",
 		"tf", "NDP_TRACK", "Memory accesses inside this function are tracked");
 
+KNOB<INT32> knob_blocks_per_page(KNOB_MODE_WRITEONCE, "pintool",
+		"bpp", "1" , "Number of memory blocks one page is distributed over");
+
+KNOB<INT32> knob_page_distro(KNOB_MODE_WRITEONCE, "pintool",
+		"pd", "0" , "Page distribution: 0 = First touch; 1 = Round Robin");
+
+#define PT_FIRST_TOUCH 0
+#define PT_STATIC 1
+static uint64_t page_offset;
 
 
-//TODO: Implement as inputs
-#define NDP_TLB_NUM_ENTRIES 16
-#define MAX_NUM_THREADS 64
-
-#define CL_SIZE 64
-
-
-struct NDP_TLS_struct{
-	TLB * tlb;		// 8 byte
-	int8_t mem_id = 0;	// 1 byte
-	uint64_t tlb_hits = 0;	// 8 byte
-	uint64_t tlb_misses = 0;// 8 byte
-	uint64_t pt_hits = 0;	// 8
-	uint64_t pt_misses = 0;	// 8
-	uint64_t _malloc_size = 0; // 8
-	uint8_t CL_Pad[CL_SIZE - 49];	
-};
-typedef struct NDP_TLS_struct ndp_tls;
-
-
-
-// Thread local storage 
-static ndp_tls threads_data[MAX_NUM_THREADS];
 
 
 
 
 
-NDP::PT * d_mem;
+// Thread local storage 
+ndp_tls  * threads_data;
+ndp_params params;
 
 
-/*
- * Ignoring Size for now as we are only tracking
- * page accesses and assume that one access does 
- * not go across pages 
- * TODO: Think about page size
- */
-static VOID SimulateMemOp
+
+
+
+NDP::PT_FT * heap_FT;
+NDP::PT_S * heap_S;
+
+static inline void memOpPage(uint64_t page, ndp_tls * tls, uint64_t r){
+	uint64_t tlb_r = tls->tlb->tlb_access(page); 
+	tls->tlb_hits += tlb_r & (0b1);
+	tls->tlb_misses += (tlb_r >> 1);
+	tls->pt_hits += r & (0b1);
+	tls->pt_misses += (r  >> 1);
+}
+
+static VOID SimulateMemOpFT
 (
 		VOID * addr, 
 		UINT32 size, 
 		THREADID tid
 )
 {
-	// For now the size of memOps is ignored as it is assumed that the whole 
-	// memory access is on one page
-	// TODO: Decide if this is a smart decision
-	
 	if(!tracking_active){
 		return;
 	}
-
-
-	// Get Page
-
 	ndp_tls * tls = &threads_data[tid]; 
 	uint64_t page = ((uint64_t) addr);
 	page = page >> page_offset;
-	uint64_t r = d_mem->acc_page(page, tls->mem_id);
-	//printf("min: %lu | max: %lu | addr: %lu | fa: %lu\n",d_mem->low_addr,d_mem->high_addr,page,(uint64_t) addr);
-	if(r)
-	{
-		uint64_t tlb_r = tls->tlb->tlb_access(page); 
-		tls->tlb_hits += tlb_r & (0b1);
-		tls->tlb_misses += (tlb_r >> 1);
-		tls->pt_hits += r & (0b1);
-		tls->pt_misses += (r  >> 1);
-//#define DB 1
-#ifdef DB
-		// Is this Problem? : Pages are not initialized at page start
-		uint64_t index = (((uint64_t) addr) & (knob_page_size.Value() -1));
-		if(tid==0){
-			std::cout << "addr: " << addr << " |P: " << page << std::endl;
-			std::cout << "index: " <<  index <<std::endl;
-		}
-	
-#endif
+	uint64_t r = heap_FT->acc_page(page, tls->mem_id);
+	if(r){
+		memOpPage(page,tls,r);
 	}
 }
 
+static VOID SimulateMemOpStatic
+(
+		VOID * addr, 
+		UINT32 size, 
+		THREADID tid
+)
+{
+	if(!tracking_active){
+		return;
+	}
+	ndp_tls * tls = &threads_data[tid]; 
+	uint64_t r = heap_S->acc_addr((uint64_t) addr, tls->mem_id);
+	if(r){
+		uint64_t page = ((uint64_t) addr);
+		page = page >> page_offset;
+		memOpPage(page,tls,r);
+	}
+}
 
 
 
@@ -157,8 +134,8 @@ static VOID ThreadStart(THREADID tid, CONTEXT *ctxt, INT32 flags, VOID * v)
 {
 	printf("Thread %d started!\n",tid);
 	// Calculate mem id
-	int num_mems = knob_num_mems.Value();
-	int tpm = knob_num_threads.Value();
+	int num_mems = params.nm;
+	int tpm = params.tpm;
 	int8_t mem_id = (tid/tpm);
 	if(mem_id >= num_mems){
 		std::cerr << "Invalid values for num mems or threads per mem mod!\n";
@@ -190,6 +167,13 @@ static VOID Trace(TRACE trace, VOID * val)
     			UINT32 memOperands = INS_MemoryOperandCount(ins);
     			for(UINT32 memOp =0; memOp < memOperands; memOp++){
     				UINT32 size = INS_MemoryOperandSize(ins,memOp);
+				AFUNPTR SimulateMemOp;
+				if(params.page_distro == PT_FIRST_TOUCH){
+					SimulateMemOp = (AFUNPTR) SimulateMemOpFT;
+				}
+				else{
+					SimulateMemOp = (AFUNPTR) SimulateMemOpStatic;
+				}
     				INS_InsertCall(ins, IPOINT_BEFORE, 
     					(AFUNPTR) SimulateMemOp,
     					IARG_MEMORYOP_EA, memOp,
@@ -219,14 +203,24 @@ static VOID MallocAfter( ADDRINT ret, THREADID tid)
 	// add mem block !!
 	uint64_t addr = (uint64_t) ret;
 	uint64_t size = threads_data[tid]._malloc_size;
-	uint64_t start = (addr) >> page_offset;
-	uint64_t stop = (addr + size - 1) >> page_offset;
+	uint64_t start,stop;
+	if(params.page_distro == PT_FIRST_TOUCH){
+		start = (addr) >> page_offset;
+		stop = (addr + size - 1) >> page_offset;
+		heap_FT->add_memblock(start,stop);
+	}
+	else{
+		start = addr;
+		stop = (addr+ size -1);
+		heap_S->add_memblock(start,stop);
+	}
+
+
 #ifdef DEBUG_INFO
 	printf("MALLOC TID : %d \n" , tid);
 	printf("addr: %lu ;size: %lu \n",addr,size);
 	printf("start: %lu ;stop: %lu \n",start,stop);
 #endif
-	d_mem->add_memblock(start,stop);
 
 }
 
@@ -262,16 +256,25 @@ static VOID MEMALIGNBefore(THREADID tid, void * ptr, ADDRINT size){
 static VOID MEMALIGNAfter(THREADID tid){
 	if(tid != 0)
 		return;
+	
 	uint64_t addr =*(uint64_t *) memal;
 	uint64_t size = msize;
-	uint64_t start = (addr) >> page_offset;
-	uint64_t stop = (addr + size - 1) >> page_offset;
+	uint64_t start,stop;
+	if(params.page_distro == PT_FIRST_TOUCH){
+		start = (addr) >> page_offset;
+		stop = (addr + size - 1) >> page_offset;
+		heap_FT->add_memblock(start,stop);
+	}
+	else{
+		start = addr;
+		stop = (addr+ size -1);
+		heap_S->add_memblock(start,stop);
+	}
 #ifdef DEBUG_INFO
 	printf("MEMALIGN TID : %d \n" , tid);
 	printf("addr: %lu ;size: %lu \n",addr,size);
 	printf("start: %lu ;stop: %lu \n",start,stop);
 #endif
-	d_mem->add_memblock(start,stop);
 }
 
 
@@ -344,73 +347,32 @@ INT32 Usage(){
 	return -1;
 };
 
-VOID write_file(){
-	FILE * of;
-	of = fopen(knob_output.Value().c_str(),"a");
-	// Write General Data
-	fprintf(of,"START\n");
-	fprintf(of,"2 META\n");
-	fprintf(of,"#mem #t/mem pagesize #TLBentries\n");
-	fprintf(of,"%d %d %lu %d \n",knob_num_mems.Value(),knob_num_threads.Value(),
-			knob_page_size.Value(),knob_num_tlb.Value());
-	int nt = knob_num_mems.Value() * knob_num_threads.Value();
-	fprintf(of,"%d DATA\n",nt + 1);
-	fprintf(of,"TID TLB_HITS TLB_MISSES TLB_HIT_RATIO PAGE_LOCAL PAGE_NOT_LOCAL PAGE_HIT_RATIO\n");
-	ndp_tls * tls;
-	for(int i = 0; i < nt ; i++){
-		tls = &threads_data[i];
-		fprintf(of,"%3d ",i);
-		double hm_ratio;
-		uint64_t total_ins = tls->tlb_hits + tls->tlb_misses;
-		hm_ratio = (tls->tlb_hits * 1.0)/((double) total_ins);
-		fprintf(of,"%lu %lu %lf ",tls->tlb_hits,tls->tlb_misses,hm_ratio);
-		hm_ratio = (tls->pt_hits * 1.0)/(total_ins);
-		fprintf(of,"%lu %lu %lf",tls->pt_hits,tls->pt_misses,hm_ratio);
-		fprintf(of,"\n");
-	}
-
-	fprintf(of,"END\n");
-	fclose(of);
-	return;
-};
 
 
 
 VOID Fini(INT32 code, VOID *v){
 	int nm = knob_num_mems.Value();
 	int tpm = knob_num_threads.Value();
-	ndp_tls * tls;
-	write_file();
-	for(int i = 0; i < nm*tpm; i++){
-		tls = &threads_data[i];
-		cout << "TID: " << i << endl;
-		cout << "TLB Hits: " << tls->tlb_hits << endl;
-		cout << "TLB Misses: " << tls->tlb_misses << endl;
-		cout << "pt Hits: " << tls->pt_hits << endl;
-		cout << "pt Misses: " << tls->pt_misses << endl;
-		delete tls->tlb;
+	write_file(&params,knob_output.Value().c_str());
+	print_output(&params);
+	
+	for(int i = 0 ; i < tpm*nm; i++){
+		delete threads_data[i].tlb;
 	}
-	delete d_mem;
+	delete threads_data;
+	if(params.page_distro == PT_FIRST_TOUCH)
+		delete heap_FT;
+	else{
+		delete heap_S;
+	}
 }
 
-// Print Configuration for current Run
-// TODO: Implement missing variables
-int print_info(int nm){
-	printf("Pintool for NDP \n");
-	printf("----------------------------\n");
-	printf("# Memory cubes 		: %d\n", nm);
-	printf("# Threads/Memory Cube	: %d\n", knob_num_threads.Value());
-	printf("Page size		: %d\n", ndp_page_size);
-	printf("TLB entries		: %d\n", ndp_tlb_entries);
-	printf("----------------------------\n");
-	return 0;
-}
 
 
 int init_tls(int nm , int tpm)
 {
 	for(int i = 0; i < nm * tpm; i++){
-		threads_data[i].tlb = new TLB(ndp_tlb_entries);
+		threads_data[i].tlb = new TLB(params.tlb_entries);
 		threads_data[i].mem_id = (i/tpm);
 	}
 	return 0;
@@ -427,15 +389,33 @@ int main(int argc, char * argv[])
 	if(PIN_Init(argc,argv)){
 		return Usage();
 	}
-	ndp_page_size = knob_page_size.Value();
-	ndp_tlb_entries = knob_num_tlb.Value();
-	int num_mems = knob_num_mems.Value();
-	print_info(num_mems);
-	init_tls(num_mems,knob_num_threads.Value());
-	// Allocate new pagetrack
-	d_mem = new NDP::PT(num_mems);
-	page_offset = log_2_uint64_t(ndp_page_size);
+	// Init parameters for run
+	params.page_size = knob_page_size.Value();
+	params.tlb_entries = knob_num_tlb.Value();
+	params.nm = (int) knob_num_mems.Value();
+	params.tpm = knob_num_threads.Value();
+	// Allocate thread local storage
+	threads_data = new ndp_tls[params.nm*params.tpm];
+	// Store pointer to array in parameters
+	params.threads_data = threads_data;
+	params.page_distro = knob_page_distro.Value();
+	int8_t num_mems = knob_num_mems.Value();
 
+	print_info(&params);
+	init_tls(num_mems,params.tpm);
+
+	// Allocate new pagetrack
+	if(params.page_distro == PT_FIRST_TOUCH){
+		heap_FT= new NDP::PT_FT(num_mems);
+	}
+	else if(params.page_distro == PT_STATIC){
+		heap_S = new NDP::PT_S(num_mems,params.page_size,knob_blocks_per_page.Value());
+	}
+	else{
+		fprintf(stderr,"Not a valid page distro !%d \n", params.page_distro);
+		return 1;
+	}
+	page_offset = log_2_uint64_t(params.page_size);
 	filter.Activate();
 	TRACE_AddInstrumentFunction(Trace,0);
 	IMG_AddInstrumentFunction(IMAGE,0);

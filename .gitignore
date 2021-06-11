@@ -64,3 +64,6 @@ benchmarks/pagerank/pagerank
 benchmarks/sssp/sssp
 *-run
 *.in
+
+#Ignore dat folder
+benchmarks/data/*

@@ -4,41 +4,43 @@
 using namespace NDP;
 
 
-
-
-
-PT::PT(uint64_t num_mem_in){
-	num_mem = num_mem_in;
-	high_addr = ~(0b0);
-	low_addr = ~(0b0);
-
-	lock_check = 0;
-	
-}
-
-PT::~PT(){
-	if((high_addr == !(0b0)) || ( low_addr == !(0b0))){
-		free(page_entries);
+static uint64_t log_2_uint64_t(uint64_t a){
+	uint64_t result = 0;
+	while(a >>= 1){
+		result++;
 	}
-	return;
+	return result;
 }
 
-#if (MEM_DIST == FIRST_TOUCH)
 
-int init_pages(int8_t * pe, int n){
+/*
+ * Simple function to set up all new pages to -1 
+ */
+inline int init_pages(int8_t * pe, int n){
 	for(int i = 0; i < n ; i++){
 		pe[i] = -1;
 	}
 	return 0;
 }
 
+PT_FT::PT_FT(int8_t num_mem_in){
+	num_mem = num_mem_in;
+	high_addr = ~(0b0);
+	low_addr = ~(0b0);
 
-int PT::add_memblock(uint64_t p_start, uint64_t p_stop){
-	if(lock_check > 0){
-		std::cerr << " Lock failure multiple threads in add memblock ! \n";
-		return -1;
+	
+}
+
+
+
+PT_FT::~PT_FT(){
+	if((high_addr == !(0b0)) || ( low_addr == !(0b0))){
+		free(page_entries);
 	}
-	lock_check++;
+	return;
+}
+
+int PT_FT::add_memblock(uint64_t p_start, uint64_t p_stop){
 	// if not at all initialized
 	if((high_addr == ~((uint64_t) 0b0)) && (low_addr == ~((uint64_t) 0b0))){
 		int new_size = p_stop - p_start +1;
@@ -46,14 +48,12 @@ int PT::add_memblock(uint64_t p_start, uint64_t p_stop){
 		init_pages(page_entries, (new_size));
 		high_addr = p_stop;
 		low_addr = p_start;
-		lock_check--;
 		return 0;
 	};
 
 
 	// Do nothing if mem region is already initialized
 	if((p_start >= low_addr)  && (p_stop <= high_addr)){
-		lock_check--;
 		return 0;
 	}
 	// New high and low addr
@@ -73,15 +73,14 @@ int PT::add_memblock(uint64_t p_start, uint64_t p_stop){
 	// Race condition with threads accessing page pointer could be dereferenced while other threads are reading values
 	// Solution for now: Only a host thread is allowed to add memory blocks and must not allocate memory while other
 	// threads are being analyzed
-	free(page_entries);
-	page_entries = tmp;
+	tmp = __atomic_exchange_n(&page_entries,tmp,__ATOMIC_SEQ_CST);
+	free(tmp);
 	high_addr = new_high;
 	low_addr = new_low;
-	lock_check--;
 	return 0;
 }
 	
-uint32_t PT::acc_page(uint64_t p_addr, int8_t mem_id){
+uint32_t PT_FT::acc_page(uint64_t p_addr, int8_t mem_id){
 	// See if page on heap
 	if((p_addr < low_addr) || (p_addr > high_addr)){
 		return ACC_PAGE_NOT_HEAP;
@@ -104,26 +103,73 @@ uint32_t PT::acc_page(uint64_t p_addr, int8_t mem_id){
 		}
 	}
 }	
-#else
-int PT::add_memblock(uint64_t p_start, uint64_t p_stop){
-	if(p_stop > high_addr)
-		high_addr = p_stop;
-	if(p_start < low_addr)
-		low_addr = p_start;
-	return 0;
-}
-uint32_t PT::acc_page(uint64_t p_addr, int8_t mem_id){
-	if((p_addr < low_addr) || (p_addr > high_addr)){
-		return ACC_PAGE_NOT_HEAP;
-	}
-	int8_t tmp  = (int8_t) (p_addr % num_mem);
-	if(tmp == mem_id){
-		return ACC_PAGE_SUCC_LOCAL;
+
+
+
+/*
+ * Deconstructor
+ */
+PT_S::~PT_S(){}
+
+
+/*
+ * Constructor for static distribution of pages
+ */
+PT_S::PT_S(int8_t num_mem_in, uint64_t page_size, int blocks_per_page)
+{
+	num_mem = num_mem_in;
+	// Get the offset for the addresses
+	if(page_size % blocks_per_page){
+		fprintf(stderr,"Page size %lu, not dividable by blocks per page %d !\n",
+			       page_size,blocks_per_page);
+		fprintf(stderr,"Block size set to %lu bytes\n",page_size);
+		block_offset = log_2_uint64_t(page_size);
+	}	
+	else if((page_size / blocks_per_page ) < 64){
+		fprintf(stderr,"Block size %d too small (min 64 bytes)\n",blocks_per_page);
+		fprintf(stderr,"Block size set to 64 bytes\n");
+		block_offset = log_2_uint64_t(64);
 	}
 	else{
-		return ACC_PAGE_SUCC_NOT_LOCAL;
+		uint64_t tmp = page_size/blocks_per_page;
+		block_offset = log_2_uint64_t(tmp);
 	}
+	// Set High and low addr to max uint64
+	high_addr = ~(0b0);
+	low_addr = ~(0b0);
 }
-#endif
+
+
+/*
+ * Add memory region to tracked heap, uses real addresses not pages !
+ */
+int PT_S::add_memblock(uint64_t a_start, uint64_t a_stop){
+	if((high_addr == ~((uint64_t) 0b0)) && (low_addr == ~((uint64_t) 0b0))){
+		high_addr = a_stop;
+		low_addr = a_start;
+	}
+	else{
+		if(a_stop > high_addr)
+			high_addr = a_stop;
+		if(a_start < low_addr)
+			low_addr = a_start;
+	}
+	return 0;
+}
+
+/*
+ * Access address and check locality 
+ */
+uint32_t PT_S::acc_addr(uint64_t addr, int8_t mem_id){
+	if((addr < low_addr) || (addr > high_addr)){
+		return ACC_PAGE_NOT_HEAP;
+	}
+	int8_t res = (addr >> block_offset) % num_mem;
+	if(res == mem_id){
+		return ACC_PAGE_SUCC_LOCAL;
+	}
+	return ACC_PAGE_SUCC_NOT_LOCAL;
+}
+
 
 
