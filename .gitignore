@@ -67,3 +67,4 @@ benchmarks/sssp/sssp
 
 #Ignore dat folder
 benchmarks/data/*
+*.csv

@@ -61,10 +61,12 @@ KNOB<INT32> knob_blocks_per_page(KNOB_MODE_WRITEONCE, "pintool",
 KNOB<INT32> knob_page_distro(KNOB_MODE_WRITEONCE, "pintool",
 		"pd", "0" , "Page distribution: 0 = First touch; 1 = Round Robin");
 
+
+
 #define PT_FIRST_TOUCH 0
 #define PT_STATIC 1
 static uint64_t page_offset;
-
+char ** input_args;
 
 
 
@@ -353,7 +355,7 @@ INT32 Usage(){
 VOID Fini(INT32 code, VOID *v){
 	int nm = knob_num_mems.Value();
 	int tpm = knob_num_threads.Value();
-	write_file(&params,knob_output.Value().c_str());
+	write_file(&params,input_args,knob_output.Value().c_str());
 	print_output(&params);
 	
 	for(int i = 0 ; i < tpm*nm; i++){
@@ -384,6 +386,7 @@ int init_tls(int nm , int tpm)
 
 int main(int argc, char * argv[])
 {
+	input_args = argv;
 
 	PIN_InitSymbols();
 	if(PIN_Init(argc,argv)){

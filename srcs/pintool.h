@@ -24,7 +24,7 @@ struct NDP_parameters{
 	int tpm; // threads per memory
 	int page_size; // page size
 	int tlb_entries; // tlb entries
-	int page_distro;
+	int page_distro; // page distro 
 	ndp_tls * threads_data; // thread data structures
 };
 typedef struct NDP_parameters ndp_params;
@@ -33,7 +33,7 @@ typedef struct NDP_parameters ndp_params;
 
 int print_info(ndp_params * data_in);
 int print_output(ndp_params * data_in);
-int write_file(ndp_params * data_in, const char * out_file);
+int write_file(ndp_params * data_in, char ** input_args, const char * out_file);
 uint64_t log_2_uint64_t(uint64_t a);
 
 

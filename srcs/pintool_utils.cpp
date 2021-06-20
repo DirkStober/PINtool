@@ -34,32 +34,46 @@ int print_output(ndp_params * data_in){
 	return 0;
 }
 
-int write_file(ndp_params * data_in, const char * out_file){
+// Write file as csv instead
+int write_file
+(
+	ndp_params * data_in,
+	char ** input_args,
+	const char * out_file
+)
+{
 	FILE * of;
 	of = fopen(out_file,"a");
 	// Write General Data
-	fprintf(of,"START\n");
-	fprintf(of,"2 META\n");
-	fprintf(of,"#mem #t/mem pagesize #TLBentries\n");
-	fprintf(of,"%d %d %d %d \n",data_in->nm,data_in->tpm,
-			data_in->page_size,data_in->tlb_entries);
+	
+	fprintf(of,"#mem cubes, threads/cubes, page size, #tlb entries, page distro, benchmark\n");
+	fprintf(of,"%d, %d, %d, %d, %d,",data_in->nm,
+			data_in->tpm,data_in->page_size,
+			data_in->tlb_entries, data_in->page_distro);
+	int on =0;
+	for(int i =0; input_args[i] != NULL; i++){
+		if(on)
+			fprintf(of,"%s ",input_args[i]);
+		if(input_args[i][0] == '-' && input_args[i][1] == '-')
+			on =1;
+	}
+	fprintf(of,"\n");
 	int nt = data_in->nm * data_in->tpm;
-	fprintf(of,"%d DATA\n",nt + 1);
-	fprintf(of,"TID TLB_HITS TLB_MISSES TLB_HIT_RATIO PAGE_LOCAL PAGE_NOT_LOCAL PAGE_HIT_RATIO\n");
+	fprintf(of,"TID, TLB HITS, TLB MISSES, tlb hit ratio, PAGE LOCAL, PAGE NOT LOCAL, PAGE HIT RATIO\n");
 	ndp_tls * tls;
 	for(int i = 0; i < nt ; i++){
 		tls = &data_in->threads_data[i];
-		fprintf(of,"%3d ",i);
+		fprintf(of,"%3d, ",i);
 		double hm_ratio;
 		uint64_t total_ins = tls->tlb_hits + tls->tlb_misses;
 		hm_ratio = (tls->tlb_hits * 1.0)/((double) total_ins);
-		fprintf(of,"%lu %lu %lf ",tls->tlb_hits,tls->tlb_misses,hm_ratio);
+		fprintf(of,"%lu, %lu, %lf, ",tls->tlb_hits,tls->tlb_misses,hm_ratio);
 		hm_ratio = (tls->pt_hits * 1.0)/(total_ins);
-		fprintf(of,"%lu %lu %lf",tls->pt_hits,tls->pt_misses,hm_ratio);
+		fprintf(of,"%lu, %lu, %lf",tls->pt_hits,tls->pt_misses,hm_ratio);
 		fprintf(of,"\n");
 	}
 
-	fprintf(of,"END\n");
+	fprintf(of,"\n\n\n");
 	fclose(of);
 	return 0;
 };
