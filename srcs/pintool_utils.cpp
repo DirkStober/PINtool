@@ -16,6 +16,7 @@ int print_info(ndp_params * data_in){
 	printf("# Threads/Memory Cube	: %d\n", data_in->tpm);
 	printf("Page size		: %d\n", data_in->page_size);
 	printf("TLB entries		: %d\n", data_in->tlb_entries);
+	printf("TLB asso		: %d\n", data_in->tlb_asso);
 	printf("----------------------------\n");
 	return 0;
 }
@@ -46,10 +47,10 @@ int write_file
 	of = fopen(out_file,"a");
 	// Write General Data
 	
-	fprintf(of,"#mem cubes, threads/cubes, page size, #tlb entries, page distro, benchmark\n");
-	fprintf(of,"%d, %d, %d, %d, %d,",data_in->nm,
+	fprintf(of,"#mem cubes, threads/cubes, page size, #tlb entries, tlb asso, page distro, benchmark\n");
+	fprintf(of,"%d, %d, %d, %d, %d, %d,",data_in->nm,
 			data_in->tpm,data_in->page_size,
-			data_in->tlb_entries, data_in->page_distro);
+			data_in->tlb_entries, data_in->tlb_asso, data_in->page_distro);
 	int on =0;
 	for(int i =0; input_args[i] != NULL; i++){
 		if(on)

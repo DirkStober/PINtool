@@ -1,23 +1,38 @@
 #include "tlb.h"
 
 
+int log_2_int(int a){
+	int result = 0;
+	while(a >>= 1){
+		result++;
+	}
+	return result;
+}
+
 
 // File to test TLB accesses
 int main(){
 	uint64_t a = 1;
-	TLB tlb = TLB(16,2048);
+	int hits = 0;
+	int misses = 0;
+	TLB tlb = TLB(32,2);
 	while(1){
 		std::cout << "Enter addr: ";
-		std::cin >> std::hex >>a;
-		a = (a << log_2_int(2048)); 
+		std::cin >> a;
 		if(a == 0){
 			break;
 		}
 		int r = tlb.tlb_access(a);
-		std::cout << "Hit? " << r << std::endl;
+		if(r == TLB_HIT){
+			hits++;
+			std::cout << " Hit!\n";
+		}
+		else{
+			misses++;
+			std::cout << "Miss !\n";
+		}
 	}
-	std::cout << "TLB sim: hits: " << tlb.hits << std::endl;
-       	std::cout << " Misses: " << tlb.misses << std::endl;
+	std::cout << "Hits: " << hits << " ;Misses: " << misses << std::endl;
 	return 0;
 };
 

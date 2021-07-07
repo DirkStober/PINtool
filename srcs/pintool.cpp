@@ -52,6 +52,9 @@ KNOB<UINT32> knob_num_threads(KNOB_MODE_WRITEONCE, "pintool",
 KNOB<UINT32> knob_num_tlb(KNOB_MODE_WRITEONCE, "pintool",
 		"tn", "32", "Number of Tlb entries");
 
+KNOB<UINT32> knob_tlb_asso(KNOB_MODE_WRITEONCE, "pintool",
+		"tlb_asso", "4", "Associativity of TLB (LRU replacement policy)");
+
 KNOB<std::string> knob_track_func(KNOB_MODE_WRITEONCE, "pintool",
 		"tf", "NDP_TRACK", "Memory accesses inside this function are tracked");
 
@@ -374,7 +377,8 @@ VOID Fini(INT32 code, VOID *v){
 int init_tls(int nm , int tpm)
 {
 	for(int i = 0; i < nm * tpm; i++){
-		threads_data[i].tlb = new TLB(params.tlb_entries);
+		threads_data[i].tlb = new TLB(params.tlb_entries,
+				params.tlb_asso);
 		threads_data[i].mem_id = (i/tpm);
 	}
 	return 0;
@@ -395,6 +399,7 @@ int main(int argc, char * argv[])
 	// Init parameters for run
 	params.page_size = knob_page_size.Value();
 	params.tlb_entries = knob_num_tlb.Value();
+	params.tlb_asso = knob_tlb_asso.Value();
 	params.nm = (int) knob_num_mems.Value();
 	params.tpm = knob_num_threads.Value();
 	// Allocate thread local storage
