@@ -38,7 +38,7 @@ pr_run(){
 SSSP_BIN=benchmarks/sssp/sssp
 sssp_run(){
 	local PARAMS=${GRAPH_PARAMS[$PROBLEM_SIZE]};
-	echo "$GRAPH_S -- $PR_BIN "$(graph_exp $NUM_THREADS $PARAMS)"";
+	echo "$GRAPH_S -- $SSSP_BIN "$(graph_exp $NUM_THREADS $PARAMS)"";
 }
 
 
@@ -51,7 +51,6 @@ HPCG_PARAMS=(
 	"208 208 208"
 );
 hpcg_run(){
-	export OMP_NUM_THREADS=$NUM_THREADS
 	echo "$HPCG_S -- $HPCG_BIN ${HPCG_PARAMS[$PROBLEM_SIZE]} "
 }
 
