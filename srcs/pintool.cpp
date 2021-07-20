@@ -407,6 +407,7 @@ int main(int argc, char * argv[])
 	// Store pointer to array in parameters
 	params.threads_data = threads_data;
 	params.page_distro = knob_page_distro.Value();
+	params.blocks_per_page = knob_blocks_per_page.Value();
 	int8_t num_mems = knob_num_mems.Value();
 
 	print_info(&params);
@@ -417,7 +418,8 @@ int main(int argc, char * argv[])
 		heap_FT= new NDP::PT_FT(num_mems);
 	}
 	else if(params.page_distro == PT_STATIC){
-		heap_S = new NDP::PT_S(num_mems,params.page_size,knob_blocks_per_page.Value());
+		heap_S = new NDP::PT_S(num_mems,params.page_size,
+				params.blocks_per_page);
 	}
 	else{
 		fprintf(stderr,"Not a valid page distro !%d \n", params.page_distro);

@@ -227,7 +227,7 @@ int main(int argc, char** argv)
          return 1;
       }
       N = 2000000;  //can be read from file if needed, this is a default upper limit
-      DEG = 16;     //also can be reda from file if needed, upper limit here again
+      DEG = 50;     //also can be read from file if needed, upper limit here again
    }
 
    int lines_to_check=0;

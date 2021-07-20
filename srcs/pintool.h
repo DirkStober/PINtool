@@ -24,8 +24,9 @@ struct NDP_parameters{
 	int tpm; // threads per memory
 	int page_size; // page size
 	int tlb_entries; // tlb entries
-	int tlb_asso;
+	int tlb_asso; // tlb asso
 	int page_distro; // page distro 
+	int blocks_per_page; // for round robin distro
 	ndp_tls * threads_data; // thread data structures
 };
 typedef struct NDP_parameters ndp_params;

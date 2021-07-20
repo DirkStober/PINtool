@@ -49,6 +49,7 @@ while read line; do
 	[[ -n ${l[6]} ]] && BLOCKS_PP="-bpp ${l[6]}";
 	PIN_FLAGS="${FILTER_SL} -o ${OUT_FILE} -p ${P_SIZE} -tn ${T_SIZE} 
 	-tlb_asso ${T_ASSO} -nm ${NM} -tpm ${TPM} -pd ${D_POLICY} ${BLOCKS_PP}";
+	NUM_THREADS=$(( NM * TPM));
 	export OMP_NUM_THREADS=$(( NM * TPM));
 	# Call correct script with command line input and etc..
 	CMD=$(run_bench $BENCH_NM);

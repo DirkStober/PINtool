@@ -14,9 +14,9 @@ graph_exp() {
 
 GRAPH_PARAMS=(
 	"0 1000 10"
-	"0 20000 20" 
-	"0 500000 16"
-	"1 benchmarks/data/web-Google.txt"
+	"1 benchmarks/data/roadNet-PA.txt"
+	"1 benchmarks/data/roadNet-TX.txt"
+	"1 benchmarks/data/roadNet-CA.txt"
 	"1 benchmarks/data/kron_g500-logn18.graph"
 );
 
