@@ -12,8 +12,8 @@ CXXFLAGS += -Wall -Werror
 
 all: $(TRGS)
 
-sssp: sssp_outer_atomic.cc
-	$(CXX) $(CXXFLAGS) $< -o $@ $(LIBS)
+sssp: sssp_outer_atomic.cc read_graph.cpp read_graph.h
+	$(CXX) $(CXXFLAGS) $< read_graph.cpp -o $@ $(LIBS)
 
 clean:
 	rm -f $(TRGS) *.o *.dot

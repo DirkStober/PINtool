@@ -7,6 +7,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <pthread.h>
+#include "read_graph.h"
 //#include "carbon_user.h"    /*For the Graphite Simulator*/
 #include <time.h>
 #include <sys/timeb.h>
@@ -44,7 +45,7 @@ void init_weights(int N, int DEG, int** W, int** W_index);
 int min = INT_MAX;
 int min_index = 0;
 pthread_mutex_t lock;
-pthread_mutex_t locks[2097152]; //change the number of locks to approx or greater N
+pthread_mutex_t locks[7000000]; //change the number of locks to approx or greater N
 int u = -1;
 int local_min_buffer[1024];
 int global_min_buffer;
@@ -226,16 +227,10 @@ int main(int argc, char** argv)
          printf ("Error:  Unable to open input file '%s'\n",filename);
          return 1;
       }
-      N = 2000000;  //can be read from file if needed, this is a default upper limit
-      DEG = 50;     //also can be read from file if needed, upper limit here again
+      N = read_N(file0);
+      DEG = 20;     //also can be read from file if needed, upper limit here again
    }
 
-   int lines_to_check=0;
-   char c;
-   int number0;
-   int number1;
-   int previous_node = -1;
-   int inter = -1;
 
    if (DEG > N)
    {
@@ -301,56 +296,7 @@ int main(int argc, char** argv)
 
    if(select==1)
    {
-      for(c=getc(file0); c!=EOF; c=getc(file0))
-      {
-         if(c=='\n')
-            lines_to_check++;
-
-         if(lines_to_check>3)
-         {   
-            int f0 = fscanf(file0, "%d %d", &number0,&number1);
-            if(f0 != 2 && f0 != EOF)
-            {
-               printf ("Error: Read %d values, expected 2. Parsing failed.\n",f0);
-               exit (EXIT_FAILURE);
-            }
-            //printf("\n%d %d",number0,number1);
-
-            if (number0 >= N) {
-               printf ("Error:  Node %d exceeds maximum graph size of %d.\n",number0,N);
-               exit (EXIT_FAILURE);
-            }
-
-            exist[number0] = 1; exist[number1] = 1;
-            id[number0] = number0;
-            if(number0==previous_node) {
-               inter++;
-            } else {
-               inter=0;
-            }
-
-            // Make sure we haven't exceeded our maximum degree.
-            if (inter >= DEG) {
-               printf ("Error:  Node %d, maximum degree of %d exceeded.\n",number0,DEG);
-               exit (EXIT_FAILURE);
-            }
-
-            // We don't support parallel edges, so check for that and ignore.
-            bool exists = false;
-            for (int i = 0; i != inter; ++i) {
-               if (W_index[number0][i] == number1) {
-                  exists = true;
-                  break;
-               }
-            }
-
-            if (!exists) {
-               W[number0][inter] = inter+1;
-               W_index[number0][inter] = number1;
-               previous_node = number0;
-            }
-         }   
-      } //W[2][0] = -1;
+	   read_graph(W,W_index,exist,id,file0,DEG,N);
    }
 
    //Generate a uniform random graph

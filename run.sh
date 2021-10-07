@@ -38,6 +38,7 @@ echo -e "Running "$BENCH_SH" benchmark,\n using "$IN_FILE" as input and writing 
 FILTER_SL="-filter_no_shared_libs";
 source $BENCH_RUNS
 while read line; do
+	[[ -z $line ]] && continue
 	[[ ${line:0:1} == "#" ]] && continue
 	l=($line);
 	NM=${l[0]};
