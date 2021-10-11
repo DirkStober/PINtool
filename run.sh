@@ -34,7 +34,7 @@ PROBLEM_SIZE=$4;
 
 echo -e "Running "$BENCH_SH" benchmark,\n using "$IN_FILE" as input and writing results to "$OUT_FILE"."; 
 
-
+cn=0;
 FILTER_SL="-filter_no_shared_libs";
 source $BENCH_RUNS
 while read line; do
@@ -48,14 +48,20 @@ while read line; do
 	T_ASSO=${l[4]};
 	D_POLICY=${l[5]};
 	[[ -n ${l[6]} ]] && BLOCKS_PP="-bpp ${l[6]}";
-	PIN_FLAGS="${FILTER_SL} -o ${OUT_FILE} -p ${P_SIZE} -tn ${T_SIZE} 
+	PIN_FLAGS="${FILTER_SL} -o "${OUT_FILE}"_"${cn}" -p ${P_SIZE} -tn ${T_SIZE} 
 	-tlb_asso ${T_ASSO} -nm ${NM} -tpm ${TPM} -pd ${D_POLICY} ${BLOCKS_PP}";
 	NUM_THREADS=$(( NM * TPM));
 	export OMP_NUM_THREADS=$(( NM * TPM));
 	# Call correct script with command line input and etc..
 	CMD=$(run_bench $BENCH_NM);
 	echo $CMD;
-	$CMD > ${OUT_FILE}.log;
+	$CMD > ${OUT_FILE}_${cn}.log;
+	[[ -n "$5" ]] && \
+		scp  ${OUT_FILE}_${cn} $5 && \
+		scp  ${OUT_FILE}_${cn}.log $5 && \
+		rm   ${OUT_FILE}_${cn} && \
+		rm   ${OUT_FILE}_${cn}.log
+	let cn+=1;
 done < $IN_FILE
 #Clear log files of hpcg benchmarks
 [[ $3 == "hpcg" ]] && rm -f hpcg*.txt;

@@ -17,7 +17,7 @@ GRAPH_PARAMS=(
 	"1 benchmarks/data/roadNet-PA.txt"
 	"1 benchmarks/data/roadNet-TX.txt"
 	"1 benchmarks/data/roadNet-CA.txt"
-	"1 benchmarks/data/kron_g500-logn18.graph"
+	"1 benchmarks/data/USA-road-d.LKS.gr"
 );
 
 ## Breath-First Search
