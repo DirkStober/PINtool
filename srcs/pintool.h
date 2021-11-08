@@ -4,7 +4,10 @@
  * Header file
  */
 
+// Inlcude both tlb and pagetrack
 #include "tlb.h"
+#include "pagetrack.h"
+
 #define CL_SIZE 64
 
 struct NDP_TLS_struct{
@@ -37,8 +40,7 @@ int print_info(ndp_params * data_in);
 int print_output(ndp_params * data_in);
 int write_file(ndp_params * data_in, char ** input_args, const char * out_file);
 uint64_t log_2_uint64_t(uint64_t a);
-
-
+int get_footprint(NDP::PT_FT * pt, NDP_parameters * params);
 
 
 

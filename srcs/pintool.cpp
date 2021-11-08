@@ -15,10 +15,8 @@
 //#define DEBUG_INFO 0
 //#define DEBUG_NDP 1
 
-
-// Inlcude both tlb and pagetrack
-#include "pagetrack.h"
 #include "filter_custom.H"
+
 
 // Define Malloc and free
 #define MALLOC "malloc"
@@ -64,6 +62,8 @@ KNOB<INT32> knob_blocks_per_page(KNOB_MODE_WRITEONCE, "pintool",
 KNOB<INT32> knob_page_distro(KNOB_MODE_WRITEONCE, "pintool",
 		"pd", "0" , "Page distribution: 0 = First touch; 1 = Round Robin");
 
+KNOB<INT32> knob_mem_footprint(KNOB_MODE_WRITEONCE, "pintool",
+		"footprint", "0" , "If set to one will check the memory footprint after execution only possible with FT policy");
 
 
 #define PT_FIRST_TOUCH 0
@@ -360,7 +360,14 @@ VOID Fini(INT32 code, VOID *v){
 	int tpm = knob_num_threads.Value();
 	write_file(&params,input_args,knob_output.Value().c_str());
 	print_output(&params);
-	
+	if(knob_mem_footprint.Value() == 1){
+		if(params.page_distro == PT_FIRST_TOUCH){
+			get_footprint(heap_FT,&params);
+		}
+		else{
+			printf("Memory footprint check only possible with FT distribution policy\n!");
+		}
+	}
 	for(int i = 0 ; i < tpm*nm; i++){
 		delete threads_data[i].tlb;
 	}

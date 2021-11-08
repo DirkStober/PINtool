@@ -87,3 +87,19 @@ uint64_t log_2_uint64_t(uint64_t a){
 	}
 	return result;
 }
+
+int get_footprint(NDP::PT_FT * pt, NDP_parameters * params){
+	uint64_t num_pages = 0;
+	uint64_t pt_len = pt->high_addr - pt->low_addr;
+	for(uint64_t i = 0; i < pt_len; i++){
+		// Page has been used during application if != -1
+		if( pt->page_entries[i] > -1){
+			num_pages++;
+		}
+	}
+	uint64_t res = params->page_size * num_pages;
+	double f_res = res / (1024.0 * 1024.0);
+	printf("Used Memory footprint: %lf MB .\n", f_res);
+	return res;
+}
+

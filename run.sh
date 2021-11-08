@@ -4,8 +4,7 @@ PINTOOL=obj/obj-intel64/pintool.so
 BENCH_RUNS="utils/ndp_run.sh";
 
 # convert trailing sizes to integers (k,M,G)
-conv_pagesize() {
-	case ${1: -1} in
+conv_pagesize() { case ${1: -1} in
 		"k") ((res=${1%k} * 1024));;
 		"M") ((res=${1%M} * 1024 * 1024));;
 		"G") ((res=${1%G} * 1024 * 1024 * 1024));;

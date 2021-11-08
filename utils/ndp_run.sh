@@ -55,6 +55,12 @@ hpcg_run(){
 }
 
 
+## TEST
+test_run(){
+	echo "-tf main -- benchmarks/test/test"
+}
+
+
 ## Function called by main run script NUM_THREADS specifies the number
 # of threads to execute with PROBLEM_SIZE the problem number
 # $1 is a string specifying the benchmark
@@ -64,6 +70,7 @@ run_bench() {
 		"hpcg") RET=$(hpcg_run);;
 		"pagerank"|"pr") RET=$(pr_run);;
 		"sssp") RET=$(sssp_run);;
+		"test") RET=$(test_run);;
 		*) echo "$1 not implemented!" && exit 0;;
 	esac;
 	CMD="${PIN_ROOT}/pin -t ${PINTOOL} ${PIN_FLAGS} "

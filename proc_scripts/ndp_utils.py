@@ -93,11 +93,11 @@ class Run_file:
         self.t_p_m = self.bench_runs[0].t_p_m
         for b in self.bench_runs:
             if(b.tlb_entries != self.tlb_entries):
-                raise Exception("Tlb size change within benchmarks !")
+                print("Tlb size change within benchmarks !")
             if(b.num_mem != self.num_mem):
-                raise Exception("Num memories change within benchmarks !")
+                print("Num memories change within benchmarks !")
             if(b.t_p_m!= self.t_p_m):
-                raise Exception("Threads/mem size change within benchmarks !")
+                print("Threads/mem size change within benchmarks !")
             if not(b.asso in assos):
                 assos.append(b.asso)
             pd = int(b.page_distro) * int(b.blocks_per_page)

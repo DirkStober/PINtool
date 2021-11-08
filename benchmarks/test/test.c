@@ -1,23 +1,6 @@
-#include <stdio.h>    
-#include <stdlib.h>   
-#include <time.h>
-#include <pthread.h>
- 
-static int num_threads;
-
-float * a;
-float * b;
-float * c;
-
-void * do_work(void * args){
-
-	int tid = *(int *) args;
-	int i;
-	for(i = tid ; i < 104; i+=num_threads){
-			c[i] = a[i] + b[i];
-	}
-	return NULL;
-}
+#include "omp.h"
+#include "stdio.h"
+#include "stdlib.h"
 
 
 
@@ -25,41 +8,16 @@ void * do_work(void * args){
 
 int main(int argc, char * argv[])
 {
-	num_threads = 2;
-	if(argc > 1){
-		num_threads = atoi(argv[1]);
-	}
-
-	printf("#threads: %d\n" , num_threads);
-	a = (float * ) malloc(500*sizeof(float));
-	b = (float * ) malloc(500*sizeof(float));
-	posix_memalign((void **) &c, 64, 1000*sizeof(float));
-	printf("HHH: %lu \n", c);
-
-	int i;
-	srand(time(NULL));
-	for(i = 0; i < 500; i++)
+	printf("Hello World!\n");
+	omp_set_num_threads(4);
+	int * a = (int *) malloc(sizeof(int) * 4096);
+#pragma omp parallel 
 	{
-		a[i] = rand() % 100 -50; 
-		b[i] = rand() % 100 -50; 
+		int tid = omp_get_thread_num();
+		int i = tid * 1024;
+		printf("TID: %d \n",i);
+		int b = a[i];
 	}
-	int * thread_args = (int *) malloc(sizeof(int) * num_threads);
-	pthread_t * threads = (pthread_t * ) malloc(sizeof(pthread_t)  *  num_threads);
-	for(int i = 1; i < num_threads ; i++){
-		thread_args[i] = i;
-		pthread_create(&threads[i],NULL,do_work, &thread_args[i]);
-	}
-	thread_args[0] = 0;
-	do_work(&thread_args[0]);
-	for(int i = 1; i < num_threads ; i++){
-		pthread_join(threads[i],NULL);
-	}
-	
 	free(a);
-	free(b);
-	free(c);
-
-
 	return 0;
 }
-
