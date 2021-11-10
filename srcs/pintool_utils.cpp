@@ -99,6 +99,7 @@ int get_footprint(NDP::PT_FT * pt, NDP_parameters * params){
 	}
 	uint64_t res = params->page_size * num_pages;
 	double f_res = res / (1024.0 * 1024.0);
+	printf("Used Memory footprint: %lu B.\n", res);
 	printf("Used Memory footprint: %lf MB .\n", f_res);
 	return res;
 }
