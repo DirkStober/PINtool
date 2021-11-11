@@ -16,8 +16,8 @@ static uint64_t log_2_uint64_t(uint64_t a){
 /*
  * Simple function to set up all new pages to -1 
  */
-inline int init_pages(int8_t * pe, int n){
-	for(int i = 0; i < n ; i++){
+inline int init_pages(int8_t * pe, uint64_t n){
+	for(uint64_t i = 0; i < n ; i++){
 		pe[i] = -1;
 	}
 	return 0;
@@ -43,7 +43,7 @@ PT_FT::~PT_FT(){
 int PT_FT::add_memblock(uint64_t p_start, uint64_t p_stop){
 	// if not at all initialized
 	if((high_addr == ~((uint64_t) 0b0)) && (low_addr == ~((uint64_t) 0b0))){
-		int new_size = p_stop - p_start +1;
+		uint64_t new_size = p_stop - p_start +1;
 		page_entries = (int8_t *) malloc(sizeof(int8_t)*(new_size));
 		init_pages(page_entries, (new_size));
 		high_addr = p_stop;

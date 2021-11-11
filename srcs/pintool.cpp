@@ -14,6 +14,7 @@
 
 //#define DEBUG_INFO 0
 //#define DEBUG_NDP 1
+#define DEBUG_ALLOC "mall"
 
 #include "filter_custom.H"
 
@@ -137,7 +138,7 @@ static VOID SimulateMemOpStatic
 
 static VOID ThreadStart(THREADID tid, CONTEXT *ctxt, INT32 flags, VOID * v)
 {
-	printf("Thread %d started!\n",tid);
+	//printf("Thread %d started!\n",tid);
 	// Calculate mem id
 	int num_mems = params.nm;
 	int tpm = params.tpm;
@@ -151,7 +152,7 @@ static VOID ThreadStart(THREADID tid, CONTEXT *ctxt, INT32 flags, VOID * v)
 
 static VOID ThreadFini(THREADID tid, const CONTEXT *ctxt, INT32 flags, VOID * v)
 {
-	printf("Thread %d finished!\n",tid);	
+	//printf("Thread %d finished!\n",tid);	
 }
 
 
@@ -341,6 +342,20 @@ static VOID IMAGE(IMG img, VOID *v)
 						IARG_END);
 				RTN_Close(rtn);
 			}
+#ifdef DEBUG_ALLOC
+			if(PIN_UndecorateSymbolName(RTN_Name(rtn),UNDECORATION_NAME_ONLY) == DEBUG_ALLOC){
+				RTN_Open(rtn);
+		RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)MallocBefore,
+		               IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+			       IARG_THREAD_ID,
+		               IARG_END);
+		RTN_InsertCall(rtn, IPOINT_AFTER, (AFUNPTR)MallocAfter,
+		               	IARG_FUNCRET_EXITPOINT_VALUE, 
+				IARG_THREAD_ID,
+				IARG_END);
+				RTN_Close(rtn);
+			}
+#endif
 		}
 	};
 
