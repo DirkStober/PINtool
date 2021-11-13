@@ -90,10 +90,15 @@ uint64_t log_2_uint64_t(uint64_t a){
 
 int get_footprint(NDP::PT_FT * pt, NDP_parameters * params){
 	uint64_t num_pages = 0;
-	uint64_t pt_len = pt->high_addr - pt->low_addr;
+	uint64_t pt_len = pt->heap.high_addr - pt->heap.low_addr;
 	for(uint64_t i = 0; i < pt_len; i++){
-		// Page has been used during application if != -1
-		if( pt->page_entries[i] > -1){
+		if( pt->heap.page_entries[i] > -1){
+			num_pages++;
+		}
+	}
+	pt_len = pt->mmap.high_addr - pt->mmap.low_addr;
+	for(uint64_t i = 0; i < pt_len; i++){
+		if( pt->mmap.page_entries[i] > -1){
 			num_pages++;
 		}
 	}

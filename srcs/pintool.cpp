@@ -12,7 +12,7 @@
 #include <fstream>
 #include "pin.H"
 
-//#define DEBUG_INFO 0
+#define DEBUG_INFO 0
 //#define DEBUG_NDP 1
 #define DEBUG_ALLOC "mall"
 
@@ -213,7 +213,7 @@ static VOID MallocAfter( ADDRINT ret, THREADID tid)
 	if(params.page_distro == PT_FIRST_TOUCH){
 		start = (addr) >> page_offset;
 		stop = (addr + size - 1) >> page_offset;
-		heap_FT->add_memblock(start,stop);
+		heap_FT->add_memblock(start,stop,page_offset);
 	}
 	else{
 		start = addr;
@@ -269,7 +269,7 @@ static VOID MEMALIGNAfter(THREADID tid){
 	if(params.page_distro == PT_FIRST_TOUCH){
 		start = (addr) >> page_offset;
 		stop = (addr + size - 1) >> page_offset;
-		heap_FT->add_memblock(start,stop);
+		heap_FT->add_memblock(start,stop,page_offset);
 	}
 	else{
 		start = addr;
