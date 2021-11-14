@@ -89,20 +89,32 @@ uint64_t log_2_uint64_t(uint64_t a){
 }
 
 int get_footprint(NDP::PT_FT * pt, NDP_parameters * params){
-	uint64_t num_pages = 0;
+	// Heap
+	uint64_t heap_pages = 0;
 	uint64_t pt_len = pt->heap.high_addr - pt->heap.low_addr;
 	for(uint64_t i = 0; i < pt_len; i++){
 		if( pt->heap.page_entries[i] > -1){
-			num_pages++;
+			heap_pages++;
 		}
 	}
+	printf("Heap from %p to %p; len: %lu \n",
+			(void *) pt->heap.low_addr, 
+			(void * ) pt->heap.high_addr, pt_len);
+	printf("Used Heap Pages: %lu \n",heap_pages);
+	// Mmap
+	uint64_t mmap_pages = 0;
 	pt_len = pt->mmap.high_addr - pt->mmap.low_addr;
 	for(uint64_t i = 0; i < pt_len; i++){
 		if( pt->mmap.page_entries[i] > -1){
-			num_pages++;
+			mmap_pages++;
 		}
 	}
-	uint64_t res = params->page_size * num_pages;
+	printf("Mmap from %p to %p; len: %lu \n",
+			(void *) pt->mmap.low_addr, 
+			(void * ) pt->mmap.high_addr, pt_len);
+	printf("Used Mmap Pages: %lu \n",mmap_pages);
+	// Total
+	uint64_t res = params->page_size * (mmap_pages + heap_pages);
 	double f_res = res / (1024.0 * 1024.0);
 	printf("Used Memory footprint: %lu B.\n", res);
 	printf("Used Memory footprint: %lf MB .\n", f_res);

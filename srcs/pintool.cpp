@@ -12,7 +12,7 @@
 #include <fstream>
 #include "pin.H"
 
-#define DEBUG_INFO 0
+//#define DEBUG_INFO 0
 //#define DEBUG_NDP 1
 #define DEBUG_ALLOC "mall"
 

@@ -27,41 +27,6 @@ mem_reg * heap_or_mmap(mem_reg * heap, mem_reg * mmap, uint64_t a_start, uint64_
 		return mmap;
 	else
 		return heap;
-
-//	bool no_heap = (heap->high_addr == 0); 
-//	bool no_mmap = (mmap->high_addr == 0); 
-//	mem_reg * ret;
-//	// No heap track No mmap track yet
-//	if(no_heap && no_mmap){
-//		if(a_start > PT_BREAK)
-//			ret = mmap;
-//		else
-//			ret = heap;
-//	}
-//	// No heap track But mmap track
-//	else if(no_heap && !(no_mmap)){
-//	// If the new region is more than PT_DIST away from mmap assume its somewhere 
-//	// on the heap
-//		if(p_dist(a_stop,mmap->low_addr) > PT_DIST)
-//			ret = heap;
-//		else
-//			ret = mmap;
-//	}
-//	// Heap but no mmap
-//	else if( !(no_heap) && (no_mmap)){
-//		if(p_dist(heap->high_addr,a_start) > PT_DIST)
-//			ret = mmap;
-//		else
-//			ret = heap;
-//	}
-//	// Heap and mmap exist
-//	else if(!(no_heap) && !(no_mmap) ) {
-//		if(p_dist(heap->high_addr,a_start) < p_dist(a_stop,mmap->low_addr))
-//			ret = heap;
-//		else
-//			ret = mmap;
-//	}
-//	return ret;
 }
 
 /*

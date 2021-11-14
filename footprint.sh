@@ -24,10 +24,9 @@ BMS=(
 );
 
 p="-pause_tool 20"
-${BIN}   ${TOOL} ${FLAGS} -tf do_work -o output/fp.out -footprint 1 -- benchmarks/test/test 
+#${BIN}   ${TOOL} ${FLAGS} -tf do_work -o output/fp.out -footprint 1 -- benchmarks/test/test 
 
 
-exit 0;
 
 
 
