@@ -143,6 +143,8 @@ class Run_file:
             else:
                 print("Multiple values for tlb asso: " + str(ta) + \
                         "picking result with smaller avergae hit rate!")
+                print("asso: " + str(ta) + " ps: " + str(br.page_size)) 
+                print("bm: " + br.benchmark) 
                 if self.avg_tlb[ta_i][p_i] > br.avg_tlb_ratio:
                     self.avg_tlb[ta_i][p_i] = br.avg_tlb_ratio
                     self.min_tlb[ta_i][p_i] = br.min_tlb_ratio
@@ -155,6 +157,7 @@ class Run_file:
             else:
                 print("Multiple values for p asso: " + str(pd) + \
                         "picking result with smaller avergae hit rate!")
+                print("distro: " + str(pd) + " ps: " + str(br.page_size)) 
                 if self.avg_pd[pd_i][p_i] > br.avg_p_ratio:
                     self.avg_pd[pd_i][p_i] = br.avg_p_ratio
                     self.min_pd[pd_i][p_i] = br.min_p_ratio
@@ -201,13 +204,13 @@ def conv_pages(in_s):
         MB= KB*1024
         GB= MB*1024
         if(i/GB >= 1):
-            r_s.append(str(int(i/GB)) + "GB")
+            r_s.append(str(int(i/GB)) + "G")
         elif(i/MB >=1):
-            r_s.append(str(int(i/MB)) + "MB")
+            r_s.append(str(int(i/MB)) + "M")
         elif(i/KB >= 1):
-            r_s.append(str(int(i/KB)) + "kB")
+            r_s.append(str(int(i/KB)) + "k")
         else:
-            r_s.append(str(int(i)) +"B")
+            r_s.append(str(int(i)) +"")
     return r_s
 
 def conv_pages_inv(in_pages):
@@ -320,52 +323,3 @@ def plot_runs(runs,graph_dir):
 
 
 
-
-
-#class metarun:
-#    self.runs = []
-#    self.names = []
-#    def __init__(self,runs):
-#        self.runs = runs
-#        self.avg_tlb = [[0.0]*len(runs[0].page_sizes)  \
-#                    for i in range(len(runs[0].tlb_assos))]
-#        self.min_tlb = [[0.0]*len(runs[0].page_sizes)  \
-#                    for i in range(len(runs[0].tlb_assos))]
-#        self.avg_pl = [[0.0]*len(runs[0].page_sizes)  \
-#                    for i in range(len(runs[0].tlb_assos))]
-#        self.min_pl = [[0.0]*len(runs[0].page_sizes)  \
-#                    for i in range(len(runs[0].tlb_assos))]
-#        for r in self.runs:
-#            self.names.append(r.file)
-#        self.sort_run()
-#        return self
-#    def sort_run(self):
-#        for i in range(len(self.runs)):
-#            for j in range(len(r.tlb_assos)):
-#                l_tlb = str(r.tlb_assos[j])
-#                l_p = str(r.page_distros[j])
-#                axs[0].plot(conv_pages(r.page_sizes),r.avg_tlb[j],\
-#                      "-" + str(col),label = l_tlb)
-#                axs[0].plot(conv_pages(r.page_sizes),r.min_tlb[j],\
-#                      "-." + str(col),label = l_tlb)
-#                axs[0].legend(loc="lower right")
-#                axs[1].plot(conv_pages(r.page_sizes),r.avg_pd[j],\
-#                      "-" + str(col), label = l_p)
-#                axs[1].plot(conv_pages(r.page_sizes),r.min_pd[j],\
-#                      "--" + str(col) ,label = l_p)
-#                axs[0].legend(loc="lower right")
-#                axs[1].legend(loc="upper right")
-#                for p in range(len(r.page_sizes)):
-#                    if(r.avg_pd[j][p] != None):
-#                        avg_pd[j][p] += r.avg_pd[j][p]/len(runs)
-#                        min_pd[j][p] += r.min_pd[j][p]/len(runs)
-#                    else:
-#                        avg_pd[j][p] = None
-#                        min_pd[j][p] = None
-#                    if(r.avg_tlb[j][p] != None):
-#                        avg_tlb[j][p] += r.avg_tlb[j][p]/len(runs)
-#                        min_tlb[j][p] += r.min_tlb[j][p]/len(runs)
-#                    else:
-#                        avg_tlb[j][p] = None
-#                        min_tlb[j][p] = None
-#

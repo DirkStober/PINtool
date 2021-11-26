@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <pthread.h>
+#include "read_graph.h"
 //#include "carbon_user.h"   /*For the Graphite Simulator*/
 #include <time.h>
 #include <sys/timeb.h>
@@ -28,7 +29,7 @@ typedef struct
 
 //Global Variables
 pthread_mutex_t lock;           //single lock
-pthread_mutex_t locks[4194304]; //upper limit for locks, can be increased
+pthread_mutex_t locks[9194304]; //upper limit for locks, can be increased
 int local_min_buffer[1024];
 double dp_tid[1024];            //dangling pages for each thread, reduced later by locks
 int global_min_buffer;
@@ -180,8 +181,10 @@ int main(int argc, char** argv)
    //For graph through file input, upper limits
    if(select==1)
    {
-      N = 2097152; //4194304; //can be read from file if needed, this is a default upper limit
-      DEG = 16;     //also can be reda from file if needed, upper limit here again
+      N = read_N(f); 
+      DEG = 20;     
+      fclose(f);
+      f = fopen(filename,"r");
    }
 
    const int P = atoi(argv[2]);  //number of threads
